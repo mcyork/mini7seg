@@ -189,6 +189,68 @@ shipped defaults reproducing today's four-digit behaviour byte for byte.
 | learn-wizard | ISC-35..40, 49 | svg-editor | no |
 | regression-guard | ISC-44..48 | all | no |
 
+## Parked — design space, not commitments
+
+⚠ Working notes. Deliberately NOT in any README: this is us thinking, and most
+of it should stay unbuilt until something forces it.
+
+**The shape of the whole question.** Four of these are one question wearing four
+hats. The model today is `digit x segment -> LED base` with a single global run
+length. Each idea breaks a different assumption inside that sentence:
+
+| idea | assumption it breaks | status |
+|---|---|---|
+| spare LEDs between segments | "the strip IS the segments" | FIXED (stripLen) |
+| a ":" in the display | "every element is a digit segment" | open |
+| uneven segment sizes | "one global run length" | open |
+| 5-6 digits, shift/seconds | "geometry decides content" | open |
+
+The general form is: **a display is a list of ELEMENTS; an element is a ROLE plus
+a SET of LED indices.** Roles: digit-segment(d,s), colon, dot, decoration.
+`segBase[d][s]` + `ledsPerSeg` is a compression of exactly that — which makes
+this the same move as formula->table, one level up. Worth noticing before
+building anything: we have now been wrong twice in the same direction, both times
+by keeping a compression after it stopped fitting.
+
+**Cheapest real win: per-segment length.** `segLen[d][s]`, uint8, 64 bytes.
+Subsumes global `ledsPerSeg` (which becomes what Reset fills in). Unblocks uneven
+segments with no new concepts and no new UI mode — the wizard already asks
+per segment, so it can just count how many groups you assign to one.
+
+**Colon: resist the full element list.** A real clock wants at most two colons
+(HH:MM:SS). `colonBase[2]` + `colonLen[2]` covers the actual case for ~8 bytes.
+A general element list is the right ABSTRACTION and the wrong amount of work for
+one punctuation mark. Revisit if a third role ever shows up.
+
+**5/6 digits is not a geometry problem.** "Shift left/right" and "show seconds"
+are LAYOUT: which digits the clock occupies and what it renders into them. Wants
+`layout` (auto | HHMM | HHMMSS) + `firstDigit`, independent of the table. Keeping
+them separate matters — conflating them is how you end up unable to put a 4-digit
+clock on the right half of a 6-digit display.
+
+**Streaming to/from another MCU: do not invent a protocol.** sACN (E1.31) and DDP
+are what WLED, xLights, Hyperion and Falcon already speak. Output mode = we emit
+our frame so another controller extends the display in sync; input mode = we
+become a dumb pixel driver someone else sequences. A UDP socket and a packet
+header buys interoperability with an entire ecosystem. Note the physical version
+needs no protocol at all: the last pixel's DO already chains onward, so "more
+LEDs" is just a bigger stripLen.
+
+**Last LED's DO wired back to a GPIO: the best idea here, and it is real.**
+WS2812 pixels consume the first 24 bits and forward the rest, so a chain of N
+pixels re-emits frame N+1 on its DO. Wire that back and:
+  - send N+1 frames, watch for the echo -> the chain is intact end to end
+  - binary search the frame count -> the largest N that echoes IS the LED count
+  - a mid-chain break stops the echo, and the search locates it
+That auto-detects the number the wizard currently has to ask for, and turns
+"is my display connected" into a probe instead of a guess.
+Feasible on a C3: RMT has a receive mode at ~12.5 ns resolution against WS2812's
+1.25 us bit, so the echo is comfortably sampleable. RMT TX out, RMT RX back.
+⚠ HARDWARE HAZARD: DO swings to the pixel's VDD. On a 5 V strip that is a 5 V
+signal into a pin that is 3.3 V tolerant and NOT 5 V tolerant. It needs a divider
+or a series resistor, and getting this wrong kills the GPIO. Next board revision,
+alongside the parked ambient-light idea — not a bodge on the current one.
+
 ## Decisions
 
 - 2026-09-21: Table over formula. A formula expresses only arithmetic wirings;
