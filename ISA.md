@@ -251,6 +251,82 @@ signal into a pin that is 3.3 V tolerant and NOT 5 V tolerant. It needs a divide
 or a series resistor, and getting this wrong kills the GPIO. Next board revision,
 alongside the parked ambient-light idea — not a bodge on the current one.
 
+## Parked — generalising past LEDs, and the connector post-mortem
+
+⚠ Still working notes, still not README material.
+
+### The wizard is already actuator-agnostic, and that is the whole product
+
+Worth stating before any refactor: the Learn wizard never mentions LEDs. It asks
+**"I just turned on thing N — which element changed?"** That question is identical
+for a pixel, a servo, a solenoid, a shutter or a flip-dot. Only `/probe` is
+LED-specific; swap it for `actuate(n, on)` and the entire flow works unchanged.
+
+Which reframes what this thing is. Everybody has a framebuffer and a segment
+font; the library is not the scarce part. The scarce part is **discovery** — a
+machine that tells you what you built instead of demanding you describe it. That
+is the asset, and it is already written.
+
+### Three layers, independently swappable
+
+| layer | today | to generalise |
+|---|---|---|
+| glyph | `getPattern(char) -> uint8_t` | needs uint16/32 — see blocker |
+| element | bits 0..7, fixed names A..G, DP | arbitrary count + names |
+| actuator | LED index range on one strip | LED / GPIO / PWM / shift-reg / I2C expander |
+
+The middle layer is what makes it work: "element 7 is on" is identical whether
+element 7 is three pixels, a servo at 90 degrees, or an energised solenoid.
+
+⚠ **HARD BLOCKER for 14/16-segment alpha:** `String7Segment.h:126` declares
+`static uint8_t getPattern(char c)` and `SEG_DP` is `0x80` — bit 7. Eight
+elements is the ceiling, baked into the type. An alpha display needs 14-16.
+This is a library API change, not a firmware one, so it breaks published users.
+
+⚠ For many actuators, GPIO count is the real constraint, not the abstraction.
+100 solenoids is 74HC595 chains or MCP23017/PCF8574 expanders, never 100 pins.
+The actuator binding must therefore carry a bus + channel, not just a pin — get
+that into the struct on day one or it gets retrofitted painfully.
+
+### Connector post-mortem: the geometry already decided it
+
+Measured from the derived board data, LED copper spanning x -7.985..+8.493 and
+y -11.668..+11.414 inside a 20.32 x 34.29 board:
+
+| edge | free margin |
+|---|---|
+| left | **2.175 mm** |
+| right | **1.667 mm** |
+| top | 5.731 mm |
+| bottom | 5.477 mm |
+
+Digits tile horizontally at pitch 20.32 = the board width **exactly**, so boards
+butt with zero gap and the chain has to cross the left/right edges — which are
+the two tightest. Nothing with a housing fits there:
+
+| part | length | height | L/R edge | top/bot | 7.2 mm cavity |
+|---|---|---|---|---|---|
+| castellated half-holes | 0 | 0 | **fits** | fits | fits |
+| 1.27 mm header, 3-pin | 3.81 | 4.50 | no | fits | fits |
+| JST-SH 1.0 mm, 3-pin | 5.90 | 4.25 | no | no | fits |
+| JST-PH 2.0 mm, 3-pin | 7.80 | 6.00 | no | no | fits |
+| 2.54 mm header, 3-pin | 7.62 | 8.50 | no | no | **no** |
+
+**Answer: castellated half-holes, 3 per side** (5V, GND, and DIN on the left /
+DOUT on the right). Zero height, zero BOM, zero cable, and the pitch already
+matches because pitch IS the board width. One solder blob per pad joins two
+boards. A 3-pin 1.27 mm header on the BACK bottom edge, populated only on the
+first board of a chain, gives the ESP32 somewhere to land.
+
+Note the 2.54 mm header — the obvious default — is the one option that cannot
+work at all: 8.5 mm of housing into a 7.2 mm cavity. The case depth Ian asked
+for and the connector he would have reached for are incompatible, and the board
+would have had to be drawn knowing that.
+
+**The DO-echo health check needs no extra pads.** The last board's right-edge
+DOUT castellation is already the tap; one wire from there back to the ESP32 is
+the whole modification.
+
 ## Decisions
 
 - 2026-09-21: Table over formula. A formula expresses only arithmetic wirings;
