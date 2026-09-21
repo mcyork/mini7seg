@@ -255,77 +255,69 @@ alongside the parked ambient-light idea — not a bodge on the current one.
 
 ⚠ Still working notes, still not README material.
 
-### The wizard is already actuator-agnostic, and that is the whole product
+### CORRECTION - three of my "constraints" were ours, not physics
 
-Worth stating before any refactor: the Learn wizard never mentions LEDs. It asks
-**"I just turned on thing N — which element changed?"** That question is identical
-for a pixel, a servo, a solenoid, a shutter or a flip-dot. Only `/probe` is
-LED-specific; swap it for `actuate(n, on)` and the entire flow works unchanged.
+Ian, 2026-09-21: *"You have to think more broadly when I say crazy. It means
+revisit or remove prior constraints."* Right on all three, and the pattern is
+worth keeping because it is the same error each time - **treating a decision we
+own as a law we obey.**
 
-Which reframes what this thing is. Everybody has a framebuffer and a segment
-font; the library is not the scarce part. The scarce part is **discovery** — a
-machine that tells you what you built instead of demanding you describe it. That
-is the asset, and it is already written.
-
-### Three layers, independently swappable
-
-| layer | today | to generalise |
-|---|---|---|
-| glyph | `getPattern(char) -> uint8_t` | needs uint16/32 — see blocker |
-| element | bits 0..7, fixed names A..G, DP | arbitrary count + names |
-| actuator | LED index range on one strip | LED / GPIO / PWM / shift-reg / I2C expander |
-
-The middle layer is what makes it work: "element 7 is on" is identical whether
-element 7 is three pixels, a servo at 90 degrees, or an energised solenoid.
-
-⚠ **HARD BLOCKER for 14/16-segment alpha:** `String7Segment.h:126` declares
-`static uint8_t getPattern(char c)` and `SEG_DP` is `0x80` — bit 7. Eight
-elements is the ceiling, baked into the type. An alpha display needs 14-16.
-This is a library API change, not a firmware one, so it breaks published users.
-
-⚠ For many actuators, GPIO count is the real constraint, not the abstraction.
-100 solenoids is 74HC595 chains or MCP23017/PCF8574 expanders, never 100 pins.
-The actuator binding must therefore carry a bus + channel, not just a pin — get
-that into the struct on day one or it gets retrofitted painfully.
-
-### Connector post-mortem: the geometry already decided it
-
-Measured from the derived board data, LED copper spanning x -7.985..+8.493 and
-y -11.668..+11.414 inside a 20.32 x 34.29 board:
-
-| edge | free margin |
+| I called it | what it actually is |
 |---|---|
-| left | **2.175 mm** |
-| right | **1.667 mm** |
-| top | 5.731 mm |
-| bottom | 5.477 mm |
+| `uint8_t getPattern` is a HARD BLOCKER for alpha | our own library. Bump the major, widen to uint16/32. Consumers pin versions; that is what versions are FOR. |
+| the 7.2 mm cavity rules out connectors | a variable in an unfinished SCAD file we control. I used an **unbuilt case** to eliminate a **physical board feature** - backwards, since the board outlives the case. |
+| the chaining edge has only 1.667 mm | true, and irrelevant. Connectors go on the **back face**: 20.32 x 34.29 minus two mount holes, nearly all free. |
 
-Digits tile horizontally at pitch 20.32 = the board width **exactly**, so boards
-butt with zero gap and the chain has to cross the left/right edges — which are
-the two tightest. Nothing with a housing fits there:
+And the one underneath those: **I assumed boards must butt.** Pitch = board width
+was an observation I promoted to a requirement. With cables, digit pitch is free.
 
-| part | length | height | L/R edge | top/bot | 7.2 mm cavity |
-|---|---|---|---|---|---|
-| castellated half-holes | 0 | 0 | **fits** | fits | fits |
-| 1.27 mm header, 3-pin | 3.81 | 4.50 | no | fits | fits |
-| JST-SH 1.0 mm, 3-pin | 5.90 | 4.25 | no | no | fits |
-| JST-PH 2.0 mm, 3-pin | 7.80 | 6.00 | no | no | fits |
-| 2.54 mm header, 3-pin | 7.62 | 8.50 | no | no | **no** |
+### What removing "must butt" actually buys
 
-**Answer: castellated half-holes, 3 per side** (5V, GND, and DIN on the left /
-DOUT on the right). Zero height, zero BOM, zero cable, and the pitch already
-matches because pitch IS the board width. One solder blob per pad joins two
-boards. A 3-pin 1.27 mm header on the BACK bottom edge, populated only on the
-first board of a chain, gives the ESP32 somewhere to land.
+Spacing stops being 20.32 mm and becomes a choice: gaps for a colon, grouping
+(HH MM), non-linear layouts, grids assembled from row-shaped boards, digits on
+different planes or a curve. The display stops being a strip of digits and
+becomes an arrangement.
 
-Note the 2.54 mm header — the obvious default — is the one option that cannot
-work at all: 8.5 mm of housing into a 7.2 mm cavity. The case depth Ian asked
-for and the connector he would have reached for are incompatible, and the board
-would have had to be drawn knowing that.
+Note what that does NOT require: the firmware already handles it. The segment
+table and the Learn wizard never assumed a row, a pitch, or adjacency - they map
+LED indices to elements and ask the human what they see. **The firmware is
+already ahead of the hardware**, which is the argument for freeing the board.
 
-**The DO-echo health check needs no extra pads.** The last board's right-edge
-DOUT castellation is already the tap; one wire from there back to the ESP32 is
-the whole modification.
+### Populate-by-choice is the answer, not a compromise
+
+Both footprints. Castellations L/R for dense butted runs - zero height, zero BOM,
+zero cable. 2x JST-SH 3-pin on the back for spaced or flexible runs. Footprints
+cost nothing on a fab panel; population is a build-time decision. Ordinary
+practice, not a hedge.
+
+### The constraint that IS physics: power through the chain
+
+Measured figure already in the firmware: 60 mA per LED at full white, so 480 mA
+per 8-LED digit. Current through the FIRST connector of a chain:
+
+| digits | full white |
+|---|---|
+| 2 | 0.96 A |
+| 4 | **1.92 A** |
+| 8 | 3.84 A |
+
+JST-SH contacts are rated about **1 A**, so a 3-pin JST daisy-chain is over spec
+past roughly **two digits at full white** - the existing 4-digit panel already
+draws about twice a single contact's rating if allowed to run white. It works
+today only because setMaxPowerInVoltsAndMilliamps caps it:
+
+| brightness | per digit | digits per 1 A contact |
+|---|---|---|
+| 40 (16%) | 75 mA | 13.3 |
+| 128 (50%) | 241 mA | 4.2 |
+| 255 (100%) | 480 mA | 2.1 |
+
+**Consequence:** carrying power through the same 3-pin chain is what does not
+scale, independent of which connector we pick - it is contact area. Fix is
+standard strip practice: **two power-injection pads on the back of every board**,
+so 5 V and GND can be fed anywhere in the run and the chain connector carries
+data plus only local current. That is the one addition worth making
+unconditional; everything else is populate-by-choice.
 
 ## Decisions
 
