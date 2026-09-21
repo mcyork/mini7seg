@@ -3,7 +3,7 @@ project: mini7seg
 task: DIY-configurable display geometry plus a visual segment editor
 effort: E3
 phase: verify
-progress: 35/49
+progress: 38/55
 mode: algorithm
 started: 2026-09-21
 updated: 2026-09-21
@@ -149,6 +149,14 @@ shipped defaults reproducing today's four-digit behaviour byte for byte.
 - [x] ISC-47: Anti: no non-ASCII bytes in any served page
 - [x] ISC-48: Anti: clock, ticker, seconds overlay and pin selector must NOT regress
 
+### Wiring mode owns the panel (added after first bench use)
+- [x] ISC-50: Clock paints ZERO frames while a wiring preview is latched
+- [x] ISC-51: A preview latches until changed or cleared -- no expiry
+- [x] ISC-52: Ticker is suppressed while wiring owns the panel
+- [DEFERRED-VERIFY] ISC-53: Idle watchdog releases the panel after 5 min of page silence
+- [DEFERRED-VERIFY] ISC-54: Page heartbeat refreshes the latch every 2 min while open
+- [DEFERRED-VERIFY] ISC-55: pagehide releases the latch so a closed tab resumes the clock
+
 ### Antecedent
 - [DEFERRED-VERIFY] ISC-49: Antecedent: the builder is never asked a fact about their own wiring
 
@@ -224,6 +232,25 @@ Deferred, with reasons:
   T3 -- ISC-44 needs the pre-update device to compare against; it has already been updated.
 
 ## Changelog
+
+conjectured: painting the preview into the buffer is enough to show one segment
+refuted_by: Ian on the bench -- the clock was still running underneath, so the
+  preview was overdrawn five times a second and read as a blip on top of a live
+  clock. Measured after the fix: 46 clock paints per 15 s before, 0 while latched,
+  53 after release.
+learned: "show X instead of Y" is a claim about what STOPS, not only about what
+  starts. showTime() was reached from three call sites and guarding them one at a
+  time is how the miss happened; one refusal inside showTime() covers every caller
+  including ones added later.
+criterion_now: ISC-50 counts clock frames during a latch and requires exactly zero
+
+conjectured: a 1500 ms identify pulse is long enough to see
+refuted_by: the builder is looking at the bench, not the screen, and a timed pulse
+  makes "which segment lit up?" a question about reaction time
+learned: any prompt that asks the user to observe hardware must latch until they
+  answer; the timeout then has to move to a watchdog, because a latch with no
+  release strands the device when the tab closes
+criterion_now: ISC-51 latches, ISC-53 bounds it with a 5 min idle release
 
 conjectured: a per-segment base table indexed d*8+s would express any DIY wiring
 refuted_by: the table stores each segment's FIRST led, so consecutive segments sit
