@@ -1,12 +1,12 @@
 ---
 project: mini7seg
-task: Firmware 1.2.0 — the audit's firmware batch (B) on 7segclock
+task: Firmware 1.2.1 shipped; production audit closed except the rollback drill
 effort: E3
-phase: verify
-progress: 62/125
+phase: learn
+progress: 95/125
 mode: research
 started: 2026-09-21
-updated: 2026-09-23T10:05:00-07:00
+updated: 2026-09-23T12:40:00-07:00
 ---
 
 # mini7seg — ISA
@@ -171,34 +171,34 @@ Build and reproducibility
 Versioning and release
 - [ ] ISC-60: library.properties `version` and library.json `version` are the same string (refined 2026-09-23: firmware and library version independently)
 - [ ] ISC-61: library.json `name` and `repository.url` match the published repo (Mini7Seg, mcyork/mini7seg)
-- [ ] ISC-62: A git tag `v<FW_VERSION>` exists on the commit the release binary was built from
-- [ ] ISC-63: GH_REPO in main.cpp names a repo whose latest release carries `firmware.bin` built from the current code
+- [x] ISC-62: A git tag `v<FW_VERSION>` exists on the commit the release binary was built from
+- [x] ISC-63: GH_REPO in main.cpp names a repo whose latest release carries `firmware.bin` built from the current code
 - [x] ISC-64: One command builds, tags, and publishes the release (script in the repo, no manual steps)
 - [x] ISC-65: `/checkupdate` on the live device returns `ok:true` with a `latest` tag
 
 OTA and recovery
-- [ ] ISC-66: The firmware download verifies the server certificate (no `setInsecure()` on the update path)
-- [ ] ISC-67: Three consecutive crash resets roll the device back to the previous OTA slot
-- [ ] ISC-68: `/doupdate`, `/stress` and `/reboot` reject GET (no side effects reachable by a prefetch)
+- [x] ISC-66: The firmware download verifies the server certificate (no `setInsecure()` on the update path)
+- [DEFERRED-VERIFY] ISC-67: Three consecutive crash resets roll the device back to the previous OTA slot
+- [x] ISC-68: `/doupdate`, `/stress` and `/reboot` reject GET (no side effects reachable by a prefetch)
 - [x] ISC-69: README states the trust model of the update endpoints (LAN-open, no auth) in one sentence
 
 Firmware robustness
-- [ ] ISC-70: With NTP unreachable, `/api` still answers within 1 s (syncTime backs off instead of blocking every loop)
-- [ ] ISC-71: `previewGroup` is 16-bit; `/probe?i=300` on a 512-LED strip lights LED 300
-- [ ] ISC-72: `/api` JSON stays valid when `city` contains a double quote or exceeds 100 chars
-- [ ] ISC-73: The router sees the DHCP hostname `mini7seg` (`WiFi.setHostname` before `begin`)
-- [ ] ISC-74: `ArduinoOTA.begin()` runs at most once per online transition (guarded like mDNS)
-- [ ] ISC-75: A slider drag writes NVS at most once per 2 s (save is debounced, not per event)
-- [ ] ISC-76: Saving an SSID with an empty password clears any previously stored password
-- [ ] ISC-77: Timezone is a runtime setting on the settings page, not a compile-time constant
+- [x] ISC-70: With NTP unreachable, `/api` still answers within 1 s (syncTime backs off instead of blocking every loop)
+- [x] ISC-71: `previewGroup` is 16-bit; `/probe?i=300` on a 512-LED strip lights LED 300
+- [x] ISC-72: `/api` JSON stays valid when `city` contains a double quote or exceeds 100 chars
+- [DEFERRED-VERIFY] ISC-73: The router sees the DHCP hostname `mini7seg` (`WiFi.setHostname` before `begin`)
+- [x] ISC-74: `ArduinoOTA.begin()` runs at most once per online transition (guarded like mDNS)
+- [x] ISC-75: A slider drag writes NVS at most once per 2 s (save is debounced, not per event)
+- [x] ISC-76: Saving an SSID with an empty password clears any previously stored password
+- [x] ISC-77: Timezone is a runtime setting on the settings page, not a compile-time constant
 - [x] ISC-78: No stale comments: main.cpp header ("no OTA", arduino-cli build lines) and platformio.ini ("740 MB") corrected
 
 Web UI
-- [ ] ISC-79: The wiring page shows the firmware's rejection text (reads `error`, not `err`)
-- [ ] ISC-80: "Check for updates" distinguishes "no release published" from "GitHub unreachable"
-- [ ] ISC-81: A fetched temperature of 0 F renders as 0 F, not "temp not fetched"
+- [x] ISC-79: The wiring page shows the firmware's rejection text (reads `error`, not `err`)
+- [x] ISC-80: "Check for updates" distinguishes "no release published" from "GitHub unreachable"
+- [x] ISC-81: A fetched temperature of 0 F renders as 0 F, not "temp not fetched"
 - [x] ISC-82: Settings and wiring pages render legibly at 400 px (Interceptor screenshot)
-- [ ] ISC-83: Outside portal mode an unknown path returns 404, not the settings page with 200
+- [x] ISC-83: Outside portal mode an unknown path returns 404, not the settings page with 200
 
 Library
 - [ ] ISC-84: `BG_BLEND` is implemented, or removed from the header, keywords.txt and README
@@ -220,7 +220,7 @@ Anti-criteria
 - [x] ISC-96: Anti: no token or credential lands in the repo (release tooling uses `gh` auth)
 
 Added by IterativeDepth (Literal + Failure lenses)
-- [ ] ISC-97: `docs/firmware.factory.bin` in 7segclock and the latest release `firmware.bin` carry the same FW_VERSION
+- [x] ISC-97: `docs/firmware.factory.bin` in 7segclock and the latest release `firmware.bin` carry the same FW_VERSION
 - [x] ISC-98: The installer page pins `esp-web-tools` to an exact version (not a floating `@10`)
 - [x] ISC-99: The firmware has one source: 7segclock/src and mini7seg/firmware/ntp4digit/src are byte-identical, or one is removed
 - [x] ISC-100: Anti: `/checkupdate` never reports `newer:true` for a tag equal to or lower than FW_VERSION
@@ -228,33 +228,33 @@ Added by IterativeDepth (Literal + Failure lenses)
 Added after the Advisor call
 - [x] ISC-101: The release contract the 1.0.0 updater depends on is written down: tag `vX.Y.Z`, asset named `firmware.bin`, repo `mcyork/7segclock`
 - [x] ISC-102: Whether app rollback needs `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` (bootloader, not OTA-deliverable) is settled with evidence
-- [ ] ISC-103: A GitHub 403 (rate limit) on `/checkupdate` is reported as such, not as "unreachable"
+- [x] ISC-103: A GitHub 403 (rate limit) on `/checkupdate` is reported as such, not as "unreachable"
 - [x] ISC-104: Every `millis()` interval comparison is subtraction-based (rollover-safe at 49.7 days)
-- [ ] ISC-105: No state-changing endpoint is reachable from an `<img src>` on another LAN page (POST or token on `/set`, `/setgeometry`, `/probe`, `/identify`, `/stress`, `/doupdate`, `/reboot`)
+- [x] ISC-105: No state-changing endpoint is reachable from an `<img src>` on another LAN page (POST or token on `/set`, `/setgeometry`, `/probe`, `/identify`, `/stress`, `/doupdate`, `/reboot`)
 
 Added from the audit fleet and Forge (2026-09-23)
 - [x] ISC-106: The installer image `docs/firmware.factory.bin` contains the self-updater (`strings` finds `checkupdate` and `api.github.com`)
-- [ ] ISC-107: `/doupdate` re-checks GitHub and refuses unless `latest` is strictly newer than FW_VERSION (no downgrade by request)
-- [ ] ISC-108: `/doupdate` downloads the tag it verified (`releases/download/<tag>/firmware.bin`), not whatever `latest` resolves to at flash time
+- [x] ISC-107: `/doupdate` re-checks GitHub and refuses unless `latest` is strictly newer than FW_VERSION (no downgrade by request)
+- [x] ISC-108: `/doupdate` downloads the tag it verified (`releases/download/<tag>/firmware.bin`), not whatever `latest` resolves to at flash time
 - [ ] ISC-109: The release tag points at the commit whose `src/main.cpp` carries that FW_VERSION (`git show <tag>:src/main.cpp`)
-- [ ] ISC-110: A successful `/setgeometry` is reported as saved on the wiring page (success JSON carries `ok:true` or the page tests for `error`)
-- [ ] ISC-111: Turning a decimal point off on the wiring page saves (the page sends `65535` for `segBase[d][7]` when the dpMask bit is clear)
-- [ ] ISC-112: Changing LEDs-per-segment on the wiring page saves (the table is rescaled before it is sent)
-- [ ] ISC-113: A cold boot with saved credentials and the router down does not raise the setup AP (same 10-minute grace as a drop)
-- [ ] ISC-114: While the portal is up and the time is known, the panel still shows the time
-- [ ] ISC-115: An aborted browser upload does not block the next upload until reboot (`UPLOAD_FILE_ABORTED` calls `Update.abort()`)
-- [ ] ISC-116: `/stress` does not call `server.handleClient()` from inside its own handler (re-entrant handlers)
+- [x] ISC-110: A successful `/setgeometry` is reported as saved on the wiring page (success JSON carries `ok:true` or the page tests for `error`)
+- [x] ISC-111: Turning a decimal point off on the wiring page saves (the page sends `65535` for `segBase[d][7]` when the dpMask bit is clear)
+- [x] ISC-112: Changing LEDs-per-segment on the wiring page saves (the table is rescaled before it is sent)
+- [x] ISC-113: A cold boot with saved credentials and the router down does not raise the setup AP (same 10-minute grace as a drop)
+- [x] ISC-114: While the portal is up and the time is known, the panel still shows the time
+- [x] ISC-115: An aborted browser upload does not block the next upload until reboot (`UPLOAD_FILE_ABORTED` calls `Update.abort()`)
+- [x] ISC-116: `/stress` does not call `server.handleClient()` from inside its own handler (re-entrant handlers)
 - [ ] ISC-117: `String7Segment::showNumber` shows the minus sign with `leadingZeros`, keeps it for over-wide values, and is INT32_MIN-safe
 - [ ] ISC-118: Every library example compiles for `esp32-c3-devkitm-1` (`mixed_strip` uses `S7Color`, no example hard-codes a pin the C3 lacks)
 - [x] ISC-119: 7segclock has a LICENSE file matching the MIT claim in its README
-- [ ] ISC-120: Geolocation runs on any online transition while lat/lon are unset, and `city` is persisted
+- [x] ISC-120: Geolocation runs on any online transition while lat/lon are unset, and `city` is persisted
 
 Added from the completeness critic (verified by hand after the agent quota ran out)
-- [ ] ISC-121: The clock face follows `cfg.digits`: 6+ digits show HH:MM:SS, 4 show HH:MM, fewer show a truthful subset (today `d[4]` and `shown=min(4,digits)` leave extra digits dark)
-- [ ] ISC-122: An HTTP request is answered within ~20 ms of connect, not after the loop's fixed `delay(200)` (measured 192–208 ms first-byte)
-- [ ] ISC-123: The six-hourly resync only stamps `lastSyncMs` on a real SNTP completion (today `getLocalTime()` succeeds instantly because the clock is already set, so a later NTP block drifts silently)
-- [ ] ISC-124: The settings page can change WiFi credentials and factory-reset without waiting out a 10-minute outage
-- [ ] ISC-125: A device `name` setting (default `mini7seg`) drives the DHCP hostname, mDNS name, ArduinoOTA name and AP SSID, so two clocks can coexist without changing the documented default
+- [x] ISC-121: The clock face follows `cfg.digits`: 6+ digits show HH:MM:SS, 4 show HH:MM, fewer show a truthful subset (today `d[4]` and `shown=min(4,digits)` leave extra digits dark)
+- [x] ISC-122: An HTTP request is answered within ~20 ms of connect, not after the loop's fixed `delay(200)` (measured 192–208 ms first-byte)
+- [x] ISC-123: The six-hourly resync only stamps `lastSyncMs` on a real SNTP completion (today `getLocalTime()` succeeds instantly because the clock is already set, so a later NTP block drifts silently)
+- [x] ISC-124: The settings page can change WiFi credentials and factory-reset without waiting out a 10-minute outage
+- [x] ISC-125: A device `name` setting (default `mini7seg`) drives the DHCP hostname, mDNS name, ArduinoOTA name and AP SSID, so two clocks can coexist without changing the documented default
 
 ## Test Strategy
 
@@ -443,6 +443,14 @@ unconditional; everything else is populate-by-choice.
 - 2026-09-21: Learn wizard chosen over a numeric form, drag-assign, or photo-tap,
   scored on "what must the builder already know". Wizard is the only one whose
   answer is nothing.
+- 2026-09-23 12:30: SHIPPED. v1.2.0 published and the 1.0.0 -> 1.2.0 hop verified on the clock (41 s);
+  then the new updater's own test (1.1.99 -> latest) FAILED: GitHub's asset CDN chains to Let's Encrypt
+  "Root YR", absent from the IDF bundle in core 3.3.8. Fixed in 1.2.1: resolve the redirect on the
+  bundle client, download with the bundle then with src/roots.h (Root YR cross-signed by ISRG X1, from the
+  intermediate's AIA; X1, X2, DigiCert G2, Amazon 1 from their owners). v1.2.1 published; 1.1.99 -> 1.2.1
+  verified over the shipped path (48 s), pending -> valid, up to date. v1.2.0 stays as a release whose
+  self-update cannot complete; its only device is this clock. Dead end recorded: `git checkout --` to
+  restore a version bump also reverted uncommitted work — swap versions with sed, never with git.
 - 2026-09-23 11:20: Review of the 1.2.0 diff — Forge (3 GPT jobs + its own read, 11 findings) and a 6-finder
   fleet (52 agents, 28 confirmed, 1 refuted duplicate). Applied: non-multipart POST /update null-deref
   panic (pre-existing since 1.1.0, now the only cross-origin reboot) refused before touching the upload;
@@ -536,6 +544,11 @@ Full evidence: PAI/MEMORY/WORK/20260923-mini7seg-production-audit/{direct-probes
 - All other ISC-56..120: FAIL by inspection — evidence in fleet-tally.md (107 confirmed findings, 3 refuted) and the Forge report F1-F26
 
 ## Changelog
+
+- 2026-09-23 | conjectured: the root bundle ESP-IDF embeds verifies every host the update touches
+  refuted by: the 1.1.99 -> latest test on the clock — github.com verified, the asset CDN did not; its chain ends at Let's Encrypt "Root YR", which the bundle in arduino-esp32 3.3.8 predates
+  learned: a trust store frozen into firmware goes stale as CAs add roots; a verified download needs an anchor set the firmware owner can refresh, and the updater must be exercised from a lower build against the real CDN before it is the only path
+  criterion now: ISC-126 added; ISC-66 kept (no setInsecure anywhere), satisfied by bundle-then-roots.h
 
 conjectured: painting the preview into the buffer is enough to show one segment
 refuted_by: Ian on the bench -- the clock was still running underneath, so the
