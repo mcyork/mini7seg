@@ -3,10 +3,10 @@ project: mini7seg
 task: Production-readiness audit of the ntp4digit firmware and the mini7seg repo
 effort: E3
 phase: execute
-progress: 45/124
+progress: 61/124
 mode: research
 started: 2026-09-21
-updated: 2026-09-23T02:05:00-07:00
+updated: 2026-09-23T07:45:00-07:00
 ---
 
 # mini7seg — ISA
@@ -164,7 +164,7 @@ shipped defaults reproducing today's four-digit behaviour byte for byte.
 
 Build and reproducibility
 - [x] ISC-56: `pio run` compiles the firmware with zero warnings from project sources
-- [ ] ISC-57: `platform` and every `lib_deps` entry in platformio.ini are pinned to exact versions
+- [x] ISC-57: `platform` and every `lib_deps` entry in platformio.ini are pinned to exact versions
 - [ ] ISC-58: All six library examples compile for an ESP32 target
 - [ ] ISC-59: A CI workflow builds the firmware and the examples on every push
 
@@ -173,14 +173,14 @@ Versioning and release
 - [ ] ISC-61: library.json `name` and `repository.url` match the published repo (Mini7Seg, mcyork/mini7seg)
 - [ ] ISC-62: A git tag `v<FW_VERSION>` exists on the commit the release binary was built from
 - [ ] ISC-63: GH_REPO in main.cpp names a repo whose latest release carries `firmware.bin` built from the current code
-- [ ] ISC-64: One command builds, tags, and publishes the release (script in the repo, no manual steps)
+- [x] ISC-64: One command builds, tags, and publishes the release (script in the repo, no manual steps)
 - [x] ISC-65: `/checkupdate` on the live device returns `ok:true` with a `latest` tag
 
 OTA and recovery
 - [ ] ISC-66: The firmware download verifies the server certificate (no `setInsecure()` on the update path)
 - [ ] ISC-67: Three consecutive crash resets roll the device back to the previous OTA slot
 - [ ] ISC-68: `/doupdate`, `/stress` and `/reboot` reject GET (no side effects reachable by a prefetch)
-- [ ] ISC-69: README states the trust model of the update endpoints (LAN-open, no auth) in one sentence
+- [x] ISC-69: README states the trust model of the update endpoints (LAN-open, no auth) in one sentence
 
 Firmware robustness
 - [ ] ISC-70: With NTP unreachable, `/api` still answers within 1 s (syncTime backs off instead of blocking every loop)
@@ -191,7 +191,7 @@ Firmware robustness
 - [ ] ISC-75: A slider drag writes NVS at most once per 2 s (save is debounced, not per event)
 - [ ] ISC-76: Saving an SSID with an empty password clears any previously stored password
 - [ ] ISC-77: Timezone is a runtime setting on the settings page, not a compile-time constant
-- [ ] ISC-78: No stale comments: main.cpp header ("no OTA", arduino-cli build lines) and platformio.ini ("740 MB") corrected
+- [x] ISC-78: No stale comments: main.cpp header ("no OTA", arduino-cli build lines) and platformio.ini ("740 MB") corrected
 
 Web UI
 - [ ] ISC-79: The wiring page shows the firmware's rejection text (reads `error`, not `err`)
@@ -203,37 +203,37 @@ Web UI
 Library
 - [ ] ISC-84: `BG_BLEND` is implemented, or removed from the header, keywords.txt and README
 - [ ] ISC-85: The S7Color comment names the real collision (FastLED's CRGB), not "S7Color"
-- [ ] ISC-86: README's examples table lists `mixed_strip`
+- [x] ISC-86: README's examples table lists `mixed_strip`
 - [ ] ISC-87: README states that the library does no bounds checking on the caller's LED array
 
 Docs and repo hygiene
-- [ ] ISC-88: README has a firmware section: what ntp4digit is, how to flash, the web UI, OTA, the wiring wizard
-- [ ] ISC-89: README links the hardware directory (enclosure, diffuser, PCB source)
-- [ ] ISC-90: BUILD.md describes the PlatformIO build for the C3 (not arduino-cli for an S3) and is not in .gitignore
-- [ ] ISC-91: No personal paths in tracked files (iCloud path, rail-end-cap note, `~/.platformio` absolute paths)
-- [ ] ISC-92: The relationship between mcyork/mini7seg and mcyork/7segclock is written down (which is canonical, why two)
-- [ ] ISC-93: GitHub description and topics mention the clock firmware, not only the library
+- [x] ISC-88: README has a firmware section: what ntp4digit is, how to flash, the web UI, OTA, the wiring wizard
+- [x] ISC-89: README links the hardware directory (enclosure, diffuser, PCB source)
+- [x] ISC-90: BUILD.md describes the PlatformIO build for the C3 (not arduino-cli for an S3) and is not in .gitignore
+- [x] ISC-91: No personal paths in tracked files (iCloud path, rail-end-cap note, `~/.platformio` absolute paths)
+- [x] ISC-92: The relationship between mcyork/mini7seg and mcyork/7segclock is written down (which is canonical, why two)
+- [x] ISC-93: GitHub description and topics mention the clock firmware, not only the library
 
 Anti-criteria
 - [ ] ISC-94: Anti: an existing 4-digit device keeps every NVS setting across the next OTA update
 - [ ] ISC-95: Anti: no change from this audit alters display rendering (geometry, colours, seconds overlay)
-- [ ] ISC-96: Anti: no token or credential lands in the repo (release tooling uses `gh` auth)
+- [x] ISC-96: Anti: no token or credential lands in the repo (release tooling uses `gh` auth)
 
 Added by IterativeDepth (Literal + Failure lenses)
 - [ ] ISC-97: `docs/firmware.factory.bin` in 7segclock and the latest release `firmware.bin` carry the same FW_VERSION
-- [ ] ISC-98: The installer page pins `esp-web-tools` to an exact version (not a floating `@10`)
+- [x] ISC-98: The installer page pins `esp-web-tools` to an exact version (not a floating `@10`)
 - [x] ISC-99: The firmware has one source: 7segclock/src and mini7seg/firmware/ntp4digit/src are byte-identical, or one is removed
 - [x] ISC-100: Anti: `/checkupdate` never reports `newer:true` for a tag equal to or lower than FW_VERSION
 
 Added after the Advisor call
-- [ ] ISC-101: The release contract the 1.0.0 updater depends on is written down: tag `vX.Y.Z`, asset named `firmware.bin`, repo `mcyork/7segclock`
+- [x] ISC-101: The release contract the 1.0.0 updater depends on is written down: tag `vX.Y.Z`, asset named `firmware.bin`, repo `mcyork/7segclock`
 - [x] ISC-102: Whether app rollback needs `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` (bootloader, not OTA-deliverable) is settled with evidence
 - [ ] ISC-103: A GitHub 403 (rate limit) on `/checkupdate` is reported as such, not as "unreachable"
 - [x] ISC-104: Every `millis()` interval comparison is subtraction-based (rollover-safe at 49.7 days)
 - [ ] ISC-105: No state-changing endpoint is reachable from an `<img src>` on another LAN page (POST or token on `/set`, `/setgeometry`, `/probe`, `/identify`, `/stress`, `/doupdate`, `/reboot`)
 
 Added from the audit fleet and Forge (2026-09-23)
-- [ ] ISC-106: The installer image `docs/firmware.factory.bin` contains the self-updater (`strings` finds `checkupdate` and `api.github.com`)
+- [x] ISC-106: The installer image `docs/firmware.factory.bin` contains the self-updater (`strings` finds `checkupdate` and `api.github.com`)
 - [ ] ISC-107: `/doupdate` re-checks GitHub and refuses unless `latest` is strictly newer than FW_VERSION (no downgrade by request)
 - [ ] ISC-108: `/doupdate` downloads the tag it verified (`releases/download/<tag>/firmware.bin`), not whatever `latest` resolves to at flash time
 - [ ] ISC-109: The release tag points at the commit whose `src/main.cpp` carries that FW_VERSION (`git show <tag>:src/main.cpp`)
@@ -246,7 +246,7 @@ Added from the audit fleet and Forge (2026-09-23)
 - [ ] ISC-116: `/stress` does not call `server.handleClient()` from inside its own handler (re-entrant handlers)
 - [ ] ISC-117: `String7Segment::showNumber` shows the minus sign with `leadingZeros`, keeps it for over-wide values, and is INT32_MIN-safe
 - [ ] ISC-118: Every library example compiles for `esp32-c3-devkitm-1` (`mixed_strip` uses `S7Color`, no example hard-codes a pin the C3 lacks)
-- [ ] ISC-119: 7segclock has a LICENSE file matching the MIT claim in its README
+- [x] ISC-119: 7segclock has a LICENSE file matching the MIT claim in its README
 - [ ] ISC-120: Geolocation runs on any online transition while lat/lon are unset, and `city` is persisted
 
 Added from the completeness critic (verified by hand after the agent quota ran out)
