@@ -2,11 +2,11 @@
 project: mini7seg
 task: Production-readiness audit of the ntp4digit firmware and the mini7seg repo
 effort: E3
-phase: execute
-progress: 61/124
+phase: complete
+progress: 62/124
 mode: research
 started: 2026-09-21
-updated: 2026-09-23T07:45:00-07:00
+updated: 2026-09-23T08:20:00-07:00
 ---
 
 # mini7seg — ISA
@@ -166,7 +166,7 @@ Build and reproducibility
 - [x] ISC-56: `pio run` compiles the firmware with zero warnings from project sources
 - [x] ISC-57: `platform` and every `lib_deps` entry in platformio.ini are pinned to exact versions
 - [ ] ISC-58: All six library examples compile for an ESP32 target
-- [ ] ISC-59: A CI workflow builds the firmware and the examples on every push
+- [x] ISC-59: A CI workflow builds the firmware and the examples on every push
 
 Versioning and release
 - [ ] ISC-60: library.properties `version` and library.json `version` are the same string (refined 2026-09-23: firmware and library version independently)
@@ -506,6 +506,7 @@ Full evidence: PAI/MEMORY/WORK/20260923-mini7seg-production-audit/{direct-probes
 - ISC-57 (FAIL): Bash — `pio pkg list`: Platform espressif32 @ 55.3.38 satisfied the unpinned spec; FastLED ^3.10.0 -> 3.10.5; library -> git HEAD 6c695db
 - ISC-58 (FAIL): fleet `pio ci` — mixed_strip: RGB is not a class; the other five: DATA_PIN 13 rejected by FastLED on esp32-c3-devkitm-1
 - ISC-97 (FAIL): see ISC-106; manifest.json version 1.0.0; release firmware.bin contains "1.0.0"
+- ISC-59: gh — Actions run 35879434124 on 60d00dd: all 8 steps success in 5m10s; contract step printed the firmware.bin OK line (CI evidence below)
 - All other ISC-56..120: FAIL by inspection — evidence in fleet-tally.md (107 confirmed findings, 3 refuted) and the Forge report F1-F26
 
 ## Changelog
