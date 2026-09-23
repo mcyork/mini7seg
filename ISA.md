@@ -1,12 +1,12 @@
 ---
 project: mini7seg
-task: Production audit closed; 1.2.1 shipped, rollback drilled, one firmware source
+task: Production audit closed; firmware 1.2.1 and library 1.1.0 shipped
 effort: E3
 phase: complete
-progress: 97/126
+progress: 105/126
 mode: research
 started: 2026-09-21
-updated: 2026-09-23T15:20:00-07:00
+updated: 2026-09-23T16:30:00-07:00
 ---
 
 # mini7seg — ISA
@@ -165,12 +165,12 @@ shipped defaults reproducing today's four-digit behaviour byte for byte.
 Build and reproducibility
 - [x] ISC-56: `pio run` compiles the firmware with zero warnings from project sources
 - [x] ISC-57: `platform` and every `lib_deps` entry in platformio.ini are pinned to exact versions
-- [ ] ISC-58: All six library examples compile for an ESP32 target
+- [x] ISC-58: All six library examples compile for an ESP32 target
 - [x] ISC-59: A CI workflow builds the firmware and the examples on every push
 
 Versioning and release
-- [ ] ISC-60: library.properties `version` and library.json `version` are the same string (refined 2026-09-23: firmware and library version independently)
-- [ ] ISC-61: library.json `name` and `repository.url` match the published repo (Mini7Seg, mcyork/mini7seg)
+- [x] ISC-60: library.properties `version` and library.json `version` are the same string (refined 2026-09-23: firmware and library version independently)
+- [x] ISC-61: library.json `name` and `repository.url` match the published repo (Mini7Seg, mcyork/mini7seg)
 - [x] ISC-62: A git tag `v<FW_VERSION>` exists on the commit the release binary was built from
 - [x] ISC-63: GH_REPO in main.cpp names a repo whose latest release carries `firmware.bin` built from the current code
 - [x] ISC-64: One command builds, tags, and publishes the release (script in the repo, no manual steps)
@@ -201,10 +201,10 @@ Web UI
 - [x] ISC-83: Outside portal mode an unknown path returns 404, not the settings page with 200
 
 Library
-- [ ] ISC-84: `BG_BLEND` is implemented, or removed from the header, keywords.txt and README
-- [ ] ISC-85: The S7Color comment names the real collision (FastLED's CRGB), not "S7Color"
+- [x] ISC-84: `BG_BLEND` is implemented, or removed from the header, keywords.txt and README
+- [x] ISC-85: The S7Color comment names the real collision (FastLED's CRGB), not "S7Color"
 - [x] ISC-86: README's examples table lists `mixed_strip`
-- [ ] ISC-87: README states that the library does no bounds checking on the caller's LED array
+- [x] ISC-87: README states that the library does no bounds checking on the caller's LED array
 
 Docs and repo hygiene
 - [x] ISC-88: README has a firmware section: what ntp4digit is, how to flash, the web UI, OTA, the wiring wizard
@@ -244,8 +244,8 @@ Added from the audit fleet and Forge (2026-09-23)
 - [x] ISC-114: While the portal is up and the time is known, the panel still shows the time
 - [x] ISC-115: An aborted browser upload does not block the next upload until reboot (`UPLOAD_FILE_ABORTED` calls `Update.abort()`)
 - [x] ISC-116: `/stress` does not call `server.handleClient()` from inside its own handler (re-entrant handlers)
-- [ ] ISC-117: `String7Segment::showNumber` shows the minus sign with `leadingZeros`, keeps it for over-wide values, and is INT32_MIN-safe
-- [ ] ISC-118: Every library example compiles for `esp32-c3-devkitm-1` (`mixed_strip` uses `S7Color`, no example hard-codes a pin the C3 lacks)
+- [x] ISC-117: `String7Segment::showNumber` shows the minus sign with `leadingZeros`, keeps it for over-wide values, and is INT32_MIN-safe
+- [x] ISC-118: Every library example compiles for `esp32-c3-devkitm-1` (`mixed_strip` uses `S7Color`, no example hard-codes a pin the C3 lacks)
 - [x] ISC-119: 7segclock has a LICENSE file matching the MIT claim in its README
 - [x] ISC-120: Geolocation runs on any online transition while lat/lon are unset, and `city` is persisted
 
@@ -446,6 +446,11 @@ unconditional; everything else is populate-by-choice.
 - 2026-09-21: Learn wizard chosen over a numeric form, drag-assign, or photo-tap,
   scored on "what must the builder already know". Wizard is the only one whose
   answer is nothing.
+- 2026-09-23 16:25: Batch C shipped as Mini7Seg v1.1.0 (tag + release, 92efc98). Three-lens review: 22 findings
+  applied, incl. a CI -Wcomment failure only GCC would raise and a BLEND clear() regression I introduced.
+  CI green on host tests (35), reject+positive-control, C++11, and all examples on C3/S3/Uno. 7segclock
+  pins it (ad26521) for the next firmware release. Arduino Library Manager listing needs a PR to
+  arduino/library-registry — outward-facing, left for Ian.
 - 2026-09-23 15:15: Rollback drilled without hands: the clock is on this Mac's USB (/dev/cu.usbmodem2101), so
   esptool's RTS reset stood in for a power cut. 1.1.99 flashed (pending), reset at ~20 s, back on 1.2.1
   valid. Dev copy deleted at Ian's word; `[env:dev]` in 7segclock replaces it. The wrong-password
