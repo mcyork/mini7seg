@@ -241,10 +241,11 @@ driven by an ESP32-C3 Super Mini, with a captive setup portal, a settings page, 
 wiring wizard that learns a hand-soldered display, a browser installer and
 self-update from GitHub Releases.
 
-**The firmware's canonical home is [mcyork/7segclock](https://github.com/mcyork/7segclock).**
-That is where releases are cut and where the installer page lives. The copy under
-`firmware/ntp4digit/` in this repo is a byte-identical dev copy that builds against
-this library checkout; it never ships on its own. See `BUILD.md`.
+**The firmware lives in [mcyork/7segclock](https://github.com/mcyork/7segclock)** — source,
+releases and the installer page. To build it against a local checkout of this
+library, clone the two repos side by side and use 7segclock's `dev` environment
+(`pio run -e dev`), which pulls the library through `symlink://../mini7seg`. There is
+no copy of the firmware here any more.
 
 ## Enclosure and printed parts
 

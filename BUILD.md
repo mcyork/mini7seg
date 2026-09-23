@@ -1,10 +1,9 @@
 # Building
 
-Two things build from this repo: the **library examples** (Arduino IDE or
-arduino-cli) and the **clock firmware** dev copy under `firmware/ntp4digit/`
-(PlatformIO). The firmware's canonical home and release chain is
-[mcyork/7segclock](https://github.com/mcyork/7segclock); see that README for
-flashing a clock.
+This repo builds the **library examples** (Arduino IDE or arduino-cli). The
+**clock firmware** lives in [mcyork/7segclock](https://github.com/mcyork/7segclock);
+see that README for flashing a clock, and its `dev` PlatformIO environment for
+building the firmware against a local checkout of this library.
 
 ## Library examples — Arduino IDE
 
@@ -33,22 +32,21 @@ On Apple Silicon without Rosetta, arduino-cli 1.5.x fails in the preprocessor
 pio ci --board esp32-s3-devkitc-1 --lib . -l FastLED examples/basic/basic.ino
 ```
 
-## Clock firmware — PlatformIO
+## Clock firmware against this checkout
 
 ```bash
-cd firmware/ntp4digit
-pio run                 # build against the library in this checkout
-pio run -t upload       # flash over USB (ESP32-C3 Super Mini, native USB CDC)
-pio device monitor      # 115200
+git clone https://github.com/mcyork/7segclock ../7segclock   # side by side with this repo
+cd ../7segclock
+pio run -e dev          # library from ../mini7seg via symlink, everything else pinned
+pio run -e dev -t upload
 ```
 
-Every dependency in `platformio.ini` is pinned to an exact version so a tagged
-commit rebuilds the same firmware. Do not loosen the pins.
+Releases are always built from the pinned `c3supermini` environment, never from `dev`.
 
 ## Notes
 
 - Target board for the clock is the **ESP32-C3 Super Mini**. Its data pin
-  allow-list lives in `firmware/ntp4digit/src/settings.h` (`PIN_XLIST`);
+  allow-list lives in 7segclock's `src/settings.h` (`PIN_XLIST`);
   strapping pins are deliberately withheld.
 - USB CDC on boot is required on the C3 (`ARDUINO_USB_CDC_ON_BOOT=1`) or there is
   no serial port at all.
