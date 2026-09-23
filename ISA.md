@@ -2,8 +2,8 @@
 project: mini7seg
 task: Firmware 1.2.1 shipped; production audit closed except the rollback drill
 effort: E3
-phase: learn
-progress: 95/125
+phase: complete
+progress: 96/126
 mode: research
 started: 2026-09-21
 updated: 2026-09-23T12:40:00-07:00
@@ -255,6 +255,9 @@ Added from the completeness critic (verified by hand after the agent quota ran o
 - [x] ISC-123: The six-hourly resync only stamps `lastSyncMs` on a real SNTP completion (today `getLocalTime()` succeeds instantly because the clock is already set, so a later NTP block drifts silently)
 - [x] ISC-124: The settings page can change WiFi credentials and factory-reset without waiting out a 10-minute outage
 - [x] ISC-125: A device `name` setting (default `mini7seg`) drives the DHCP hostname, mDNS name, ArduinoOTA name and AP SSID, so two clocks can coexist without changing the documented default
+
+Added after 1.2.0 shipped with a self-update that could not reach GitHub's CDN
+- [x] ISC-126: Before a release is public, the self-update is proven from a LOWER build against the published asset on the real CDN (1.1.99 -> 1.2.1 over the shipped path, 48 s, pending -> valid)
 
 ## Test Strategy
 
