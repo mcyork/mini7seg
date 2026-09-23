@@ -1,12 +1,12 @@
 ---
 project: mini7seg
-task: Production-readiness audit of the ntp4digit firmware and the mini7seg repo
+task: Firmware 1.2.0 — the audit's firmware batch (B) on 7segclock
 effort: E3
-phase: complete
-progress: 62/124
+phase: verify
+progress: 62/125
 mode: research
 started: 2026-09-21
-updated: 2026-09-23T08:20:00-07:00
+updated: 2026-09-23T10:05:00-07:00
 ---
 
 # mini7seg — ISA
@@ -254,6 +254,7 @@ Added from the completeness critic (verified by hand after the agent quota ran o
 - [ ] ISC-122: An HTTP request is answered within ~20 ms of connect, not after the loop's fixed `delay(200)` (measured 192–208 ms first-byte)
 - [ ] ISC-123: The six-hourly resync only stamps `lastSyncMs` on a real SNTP completion (today `getLocalTime()` succeeds instantly because the clock is already set, so a later NTP block drifts silently)
 - [ ] ISC-124: The settings page can change WiFi credentials and factory-reset without waiting out a 10-minute outage
+- [ ] ISC-125: A device `name` setting (default `mini7seg`) drives the DHCP hostname, mDNS name, ArduinoOTA name and AP SSID, so two clocks can coexist without changing the documented default
 
 ## Test Strategy
 
@@ -442,6 +443,31 @@ unconditional; everything else is populate-by-choice.
 - 2026-09-21: Learn wizard chosen over a numeric form, drag-assign, or photo-tap,
   scored on "what must the builder already know". Wizard is the only one whose
   answer is nothing.
+- 2026-09-23 11:20: Review of the 1.2.0 diff — Forge (3 GPT jobs + its own read, 11 findings) and a 6-finder
+  fleet (52 agents, 28 confirmed, 1 refuted duplicate). Applied: non-multipart POST /update null-deref
+  panic (pre-existing since 1.1.0, now the only cross-origin reboot) refused before touching the upload;
+  "AP" cue overpainted by the new frame painter; Host check against DNS rebinding (IP, AP IP, name,
+  name.local only); page-offered restarts confirm a pending image first; /set writes flash before RAM;
+  confirm retried unless ESP_OK; /checkupdate POST-gated; tag must be plain N.N.N; upgraded clocks learn
+  their city; keepalive through the queue; portal retry waits while a phone is attached (forced 5 min);
+  boot grace = 60 s while an image is pending; "Err" held 3 s; updErr on its own line; stale-reply repaint
+  suppressed; DP-on hint; Identify disabled during Learn; 1-digit face; offline tell on any face; partial
+  last probe group; nvs.net80211 cleared on factory reset; UTF-8-safe truncation; Release.ts checks newer-
+  than-latest, sources-match-HEAD, and the NUL-delimited version literal. Deferred: heap headroom during
+  /doupdate (bench), whether the radio drops AP clients on STA retry (bench), 1.0.0-tag analysis (moot).
+- 2026-09-23 10:00: Advisor on the 1.2.0 change set adopted: cold boot that never associates raises the
+  portal after 3 min (BOOT_OFFLINE_MS) instead of 10; the rollback confirm requires reachability (STA up
+  or portal up) as well as 60 s uptime; boot logs the OTA image state and /api reports otaState + otaSlot
+  so the bench can prove rollback is live and the slot is 0x1E0000; the new updater gets its own hop test
+  (1.1.99 build -> Install -> 1.2.0) before it becomes the only path. Bench plan in
+  PAI/MEMORY/WORK/20260923-mini7seg-production-audit/bench-plan-1.2.0.md.
+- 2026-09-23 08:40: Batch B opened. Ian approved the firmware batch; the dev copy in mini7seg/firmware is
+  redundant (hand-synced duplicate) and its only value — building against a local library checkout —
+  is better served by a second PlatformIO env in 7segclock. Deletion is Ian's call; kept in sync meanwhile.
+- 2026-09-23 08:40: 1.2.0 design: mutating routes POST + `X-7seg: 1` header (forces a CORS preflight the
+  device never answers); /doupdate re-checks GitHub, requires strictly newer, downloads the verified tag
+  over the IDF CA bundle; rollback confirmed on 60 s uptime (not connectivity, so wrong-creds does not
+  roll back); ArduinoOTA left open and documented; name/tz/city become settings with unchanged defaults.
 - 2026-09-23 01:25: Audit result: 7 of 65 production criteria pass. Fix batching adopted from the
   Advisor: A = repo-only (installer image, pins, release script, CI, docs), B = one firmware
   release 1.2.0 verified through the real 1.0.0 -> 1.2.0 hop on a spare board, C = library 1.1.0.
