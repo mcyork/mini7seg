@@ -1,5 +1,11 @@
 # String7Segment Library Design
 
+> **Historical design note (early 2026).** This is the original sketch the
+> library grew from. The API names, example list and target board below no
+> longer match the code — `README.md` is the reference for what the library
+> does today, and `hardware/README.md` for the boards and enclosure. Kept for
+> the reasoning, not the details.
+
 ## Overview
 
 A library for driving 7-segment displays made from addressable LEDs (WS2812/NeoPixel) that plays nicely with existing LED arrays managed by FastLED or Adafruit NeoPixel.

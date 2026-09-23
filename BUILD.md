@@ -1,87 +1,54 @@
-# Build Configuration
+# Building
 
-## Arduino IDE Location
+Two things build from this repo: the **library examples** (Arduino IDE or
+arduino-cli) and the **clock firmware** dev copy under `firmware/ntp4digit/`
+(PlatformIO). The firmware's canonical home and release chain is
+[mcyork/7segclock](https://github.com/mcyork/7segclock); see that README for
+flashing a clock.
 
-```
-/Applications/Arduino IDE.app
-```
+## Library examples — Arduino IDE
 
-Bundled CLI:
-```
-/Applications/Arduino IDE.app/Contents/Resources/app/lib/backend/resources/arduino-cli
-```
+1. Install the library: **Sketch → Include Library → Add .ZIP Library**, or clone
+   this repo into `~/Documents/Arduino/libraries/`.
+2. Install **FastLED** from the Library Manager (the examples use it; the library
+   itself has no dependencies).
+3. Open any sketch under `examples/`, set `DATA_PIN` to a pin your board can
+   drive, and upload.
 
-## ESP32-S3 with USB CDC
-
-For ESP32-S3 boards using USB CDC for serial (no external UART chip), you need these compile flags:
-
-```
---fqbn esp32:esp32:esp32s3:USBMode=hwcdc,CDCOnBoot=cdc
-```
-
-This enables:
-- `USBMode=hwcdc` - Hardware CDC and JTAG
-- `CDCOnBoot=cdc` - CDC enabled on boot (so Serial works immediately)
-
-## Building with Arduino CLI
+## Library examples — arduino-cli
 
 ```bash
-# Set up alias for bundled CLI
-ARDUINO_CLI="/Applications/Arduino IDE.app/Contents/Resources/app/lib/backend/resources/arduino-cli"
+arduino-cli core update-index --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+arduino-cli core install esp32:esp32
+arduino-cli lib install FastLED
 
-# Install ESP32 platform (if not already)
-$ARDUINO_CLI core update-index --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-$ARDUINO_CLI core install esp32:esp32
-
-# Install FastLED
-$ARDUINO_CLI lib install "FastLED"
-
-# Compile basic example
-$ARDUINO_CLI compile \
-  --fqbn esp32:esp32:esp32s3:USBMode=hwcdc,CDCOnBoot=cdc \
-  examples/basic/basic.ino
-
-# Upload (replace /dev/cu.usbmodem* with your port)
-$ARDUINO_CLI upload \
-  --fqbn esp32:esp32:esp32s3:USBMode=hwcdc,CDCOnBoot=cdc \
-  --port /dev/cu.usbmodem* \
-  examples/basic/basic.ino
+# Any ESP32 works; the pin in each example must exist on your board.
+arduino-cli compile --fqbn esp32:esp32:esp32s3 --library . examples/basic/basic.ino
 ```
 
-## Quick Build Script
+On Apple Silicon without Rosetta, arduino-cli 1.5.x fails in the preprocessor
+(its bundled ctags is x86-only). Use PlatformIO there:
 
 ```bash
-#!/bin/bash
-# build.sh - Compile and optionally upload
-
-ARDUINO_CLI="/Applications/Arduino IDE.app/Contents/Resources/app/lib/backend/resources/arduino-cli"
-FQBN="esp32:esp32:esp32s3:USBMode=hwcdc,CDCOnBoot=cdc"
-SKETCH="${1:-examples/basic/basic.ino}"
-
-# Find port
-PORT=$(ls /dev/cu.usbmodem* 2>/dev/null | head -1)
-
-echo "Compiling $SKETCH..."
-$ARDUINO_CLI compile --fqbn $FQBN --library src $SKETCH
-
-if [ "$2" == "upload" ] && [ -n "$PORT" ]; then
-  echo "Uploading to $PORT..."
-  $ARDUINO_CLI upload --fqbn $FQBN --port $PORT $SKETCH
-fi
+pio ci --board esp32-s3-devkitc-1 --lib . -l FastLED examples/basic/basic.ino
 ```
 
-## Arduino IDE Settings
+## Clock firmware — PlatformIO
 
-If using the GUI:
+```bash
+cd firmware/ntp4digit
+pio run                 # build against the library in this checkout
+pio run -t upload       # flash over USB (ESP32-C3 Super Mini, native USB CDC)
+pio device monitor      # 115200
+```
 
-1. **Board:** ESP32S3 Dev Module
-2. **USB Mode:** Hardware CDC and JTAG
-3. **USB CDC On Boot:** Enabled
-4. **Upload Speed:** 921600
-5. **Partition Scheme:** Default 4MB with spiffs
+Every dependency in `platformio.ini` is pinned to an exact version so a tagged
+commit rebuilds the same firmware. Do not loosen the pins.
 
-## Library Dependencies
+## Notes
 
-- **FastLED** (for examples) - install via Library Manager or `arduino-cli lib install "FastLED"`
-
-The core library (`String7Segment`) has no dependencies.
+- Target board for the clock is the **ESP32-C3 Super Mini**. Its data pin
+  allow-list lives in `firmware/ntp4digit/src/settings.h` (`PIN_XLIST`);
+  strapping pins are deliberately withheld.
+- USB CDC on boot is required on the C3 (`ARDUINO_USB_CDC_ON_BOOT=1`) or there is
+  no serial port at all.

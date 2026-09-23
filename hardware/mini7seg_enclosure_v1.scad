@@ -161,7 +161,7 @@ module shell() {
         }
 }
 
-// No back wall — Ian's call. The case is a tray: window, baffle, wall ring.
+// No back wall, deliberately. The case is a tray: window, baffle, wall ring.
 module back_wall() { }
 
 module assembly() {

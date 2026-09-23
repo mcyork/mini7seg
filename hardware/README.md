@@ -13,7 +13,7 @@ on the PCB and gives every LED its own light well, and a translucent
 | Build everything | `bun Build.ts` (`--digits 1` for a single-digit test piece) |
 | STL / 3MF / G-code output | `out/` |
 | G-code that has actually been printed | `gcode/` |
-| **PCB source of truth** | iCloud → `Documents/EasyEDA-Pro/projects-recovery/ProPrj_7-seg-string/ProPrj_7-seg-string_2026-01-20-00-00-08.epro` |
+| **PCB source of truth** | EasyEDA Pro project `ProPrj_7-seg-string` (maintainer's workspace; the published design is the [OSHWLab project](https://oshwlab.com/mcyork/7-seg-string)) |
 
 The `.epro` is a plain zip. `PCB/d97f67a54bbb46e88dcb99f7e0514d6e.epcb` is the
 digit board; it is JSON-per-line. LED positions come from the `COMPONENT`
@@ -21,11 +21,8 @@ records cross-referenced to `ATTR … "Designator"`, the mount holes are the two
 layer-12 `PAD` records on net GND, and the outline is the layer-11 `POLY`.
 Units are **mil**; 1 mil = 0.0254 mm.
 
-> Sep 2026: the first batch of G-code was printed off a USB stick and the
-> backup of that stick landed in `scad/rail-end-cap/usb-backup-20260906/` —
-> the wrong project entirely. It has been moved to `gcode/`. If a printed file
-> ever goes missing again, `mdfind` across the whole disk before concluding it
-> was never made.
+> G-code that has actually been printed lives in `gcode/`, separate from the
+> generated `out/` tree, so a proven file is never confused with a fresh slice.
 
 ## Board facts, read off the PCB (mm, board-centre frame, +X right +Y up)
 

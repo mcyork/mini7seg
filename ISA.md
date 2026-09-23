@@ -1,12 +1,12 @@
 ---
 project: mini7seg
-task: DIY-configurable display geometry plus a visual segment editor
+task: Production-readiness audit of the ntp4digit firmware and the mini7seg repo
 effort: E3
-phase: verify
-progress: 38/55
-mode: algorithm
+phase: execute
+progress: 45/124
+mode: research
 started: 2026-09-21
-updated: 2026-09-21
+updated: 2026-09-23T02:05:00-07:00
 ---
 
 # mini7seg — ISA
@@ -160,6 +160,101 @@ shipped defaults reproducing today's four-digit behaviour byte for byte.
 ### Antecedent
 - [DEFERRED-VERIFY] ISC-49: Antecedent: the builder is never asked a fact about their own wiring
 
+### Production readiness (audit opened 2026-09-23)
+
+Build and reproducibility
+- [x] ISC-56: `pio run` compiles the firmware with zero warnings from project sources
+- [ ] ISC-57: `platform` and every `lib_deps` entry in platformio.ini are pinned to exact versions
+- [ ] ISC-58: All six library examples compile for an ESP32 target
+- [ ] ISC-59: A CI workflow builds the firmware and the examples on every push
+
+Versioning and release
+- [ ] ISC-60: library.properties `version` and library.json `version` are the same string (refined 2026-09-23: firmware and library version independently)
+- [ ] ISC-61: library.json `name` and `repository.url` match the published repo (Mini7Seg, mcyork/mini7seg)
+- [ ] ISC-62: A git tag `v<FW_VERSION>` exists on the commit the release binary was built from
+- [ ] ISC-63: GH_REPO in main.cpp names a repo whose latest release carries `firmware.bin` built from the current code
+- [ ] ISC-64: One command builds, tags, and publishes the release (script in the repo, no manual steps)
+- [x] ISC-65: `/checkupdate` on the live device returns `ok:true` with a `latest` tag
+
+OTA and recovery
+- [ ] ISC-66: The firmware download verifies the server certificate (no `setInsecure()` on the update path)
+- [ ] ISC-67: Three consecutive crash resets roll the device back to the previous OTA slot
+- [ ] ISC-68: `/doupdate`, `/stress` and `/reboot` reject GET (no side effects reachable by a prefetch)
+- [ ] ISC-69: README states the trust model of the update endpoints (LAN-open, no auth) in one sentence
+
+Firmware robustness
+- [ ] ISC-70: With NTP unreachable, `/api` still answers within 1 s (syncTime backs off instead of blocking every loop)
+- [ ] ISC-71: `previewGroup` is 16-bit; `/probe?i=300` on a 512-LED strip lights LED 300
+- [ ] ISC-72: `/api` JSON stays valid when `city` contains a double quote or exceeds 100 chars
+- [ ] ISC-73: The router sees the DHCP hostname `mini7seg` (`WiFi.setHostname` before `begin`)
+- [ ] ISC-74: `ArduinoOTA.begin()` runs at most once per online transition (guarded like mDNS)
+- [ ] ISC-75: A slider drag writes NVS at most once per 2 s (save is debounced, not per event)
+- [ ] ISC-76: Saving an SSID with an empty password clears any previously stored password
+- [ ] ISC-77: Timezone is a runtime setting on the settings page, not a compile-time constant
+- [ ] ISC-78: No stale comments: main.cpp header ("no OTA", arduino-cli build lines) and platformio.ini ("740 MB") corrected
+
+Web UI
+- [ ] ISC-79: The wiring page shows the firmware's rejection text (reads `error`, not `err`)
+- [ ] ISC-80: "Check for updates" distinguishes "no release published" from "GitHub unreachable"
+- [ ] ISC-81: A fetched temperature of 0 F renders as 0 F, not "temp not fetched"
+- [x] ISC-82: Settings and wiring pages render legibly at 400 px (Interceptor screenshot)
+- [ ] ISC-83: Outside portal mode an unknown path returns 404, not the settings page with 200
+
+Library
+- [ ] ISC-84: `BG_BLEND` is implemented, or removed from the header, keywords.txt and README
+- [ ] ISC-85: The S7Color comment names the real collision (FastLED's CRGB), not "S7Color"
+- [ ] ISC-86: README's examples table lists `mixed_strip`
+- [ ] ISC-87: README states that the library does no bounds checking on the caller's LED array
+
+Docs and repo hygiene
+- [ ] ISC-88: README has a firmware section: what ntp4digit is, how to flash, the web UI, OTA, the wiring wizard
+- [ ] ISC-89: README links the hardware directory (enclosure, diffuser, PCB source)
+- [ ] ISC-90: BUILD.md describes the PlatformIO build for the C3 (not arduino-cli for an S3) and is not in .gitignore
+- [ ] ISC-91: No personal paths in tracked files (iCloud path, rail-end-cap note, `~/.platformio` absolute paths)
+- [ ] ISC-92: The relationship between mcyork/mini7seg and mcyork/7segclock is written down (which is canonical, why two)
+- [ ] ISC-93: GitHub description and topics mention the clock firmware, not only the library
+
+Anti-criteria
+- [ ] ISC-94: Anti: an existing 4-digit device keeps every NVS setting across the next OTA update
+- [ ] ISC-95: Anti: no change from this audit alters display rendering (geometry, colours, seconds overlay)
+- [ ] ISC-96: Anti: no token or credential lands in the repo (release tooling uses `gh` auth)
+
+Added by IterativeDepth (Literal + Failure lenses)
+- [ ] ISC-97: `docs/firmware.factory.bin` in 7segclock and the latest release `firmware.bin` carry the same FW_VERSION
+- [ ] ISC-98: The installer page pins `esp-web-tools` to an exact version (not a floating `@10`)
+- [x] ISC-99: The firmware has one source: 7segclock/src and mini7seg/firmware/ntp4digit/src are byte-identical, or one is removed
+- [x] ISC-100: Anti: `/checkupdate` never reports `newer:true` for a tag equal to or lower than FW_VERSION
+
+Added after the Advisor call
+- [ ] ISC-101: The release contract the 1.0.0 updater depends on is written down: tag `vX.Y.Z`, asset named `firmware.bin`, repo `mcyork/7segclock`
+- [x] ISC-102: Whether app rollback needs `CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE` (bootloader, not OTA-deliverable) is settled with evidence
+- [ ] ISC-103: A GitHub 403 (rate limit) on `/checkupdate` is reported as such, not as "unreachable"
+- [x] ISC-104: Every `millis()` interval comparison is subtraction-based (rollover-safe at 49.7 days)
+- [ ] ISC-105: No state-changing endpoint is reachable from an `<img src>` on another LAN page (POST or token on `/set`, `/setgeometry`, `/probe`, `/identify`, `/stress`, `/doupdate`, `/reboot`)
+
+Added from the audit fleet and Forge (2026-09-23)
+- [ ] ISC-106: The installer image `docs/firmware.factory.bin` contains the self-updater (`strings` finds `checkupdate` and `api.github.com`)
+- [ ] ISC-107: `/doupdate` re-checks GitHub and refuses unless `latest` is strictly newer than FW_VERSION (no downgrade by request)
+- [ ] ISC-108: `/doupdate` downloads the tag it verified (`releases/download/<tag>/firmware.bin`), not whatever `latest` resolves to at flash time
+- [ ] ISC-109: The release tag points at the commit whose `src/main.cpp` carries that FW_VERSION (`git show <tag>:src/main.cpp`)
+- [ ] ISC-110: A successful `/setgeometry` is reported as saved on the wiring page (success JSON carries `ok:true` or the page tests for `error`)
+- [ ] ISC-111: Turning a decimal point off on the wiring page saves (the page sends `65535` for `segBase[d][7]` when the dpMask bit is clear)
+- [ ] ISC-112: Changing LEDs-per-segment on the wiring page saves (the table is rescaled before it is sent)
+- [ ] ISC-113: A cold boot with saved credentials and the router down does not raise the setup AP (same 10-minute grace as a drop)
+- [ ] ISC-114: While the portal is up and the time is known, the panel still shows the time
+- [ ] ISC-115: An aborted browser upload does not block the next upload until reboot (`UPLOAD_FILE_ABORTED` calls `Update.abort()`)
+- [ ] ISC-116: `/stress` does not call `server.handleClient()` from inside its own handler (re-entrant handlers)
+- [ ] ISC-117: `String7Segment::showNumber` shows the minus sign with `leadingZeros`, keeps it for over-wide values, and is INT32_MIN-safe
+- [ ] ISC-118: Every library example compiles for `esp32-c3-devkitm-1` (`mixed_strip` uses `S7Color`, no example hard-codes a pin the C3 lacks)
+- [ ] ISC-119: 7segclock has a LICENSE file matching the MIT claim in its README
+- [ ] ISC-120: Geolocation runs on any online transition while lat/lon are unset, and `city` is persisted
+
+Added from the completeness critic (verified by hand after the agent quota ran out)
+- [ ] ISC-121: The clock face follows `cfg.digits`: 6+ digits show HH:MM:SS, 4 show HH:MM, fewer show a truthful subset (today `d[4]` and `shown=min(4,digits)` leave extra digits dark)
+- [ ] ISC-122: An HTTP request is answered within ~20 ms of connect, not after the loop's fixed `delay(200)` (measured 192–208 ms first-byte)
+- [ ] ISC-123: The six-hourly resync only stamps `lastSyncMs` on a real SNTP completion (today `getLocalTime()` succeeds instantly because the clock is already set, so a later NTP block drifts silently)
+- [ ] ISC-124: The settings page can change WiFi credentials and factory-reset without waiting out a 10-minute outage
+
 ## Test Strategy
 
 | isc | type | check | threshold | tool |
@@ -176,6 +271,16 @@ shipped defaults reproducing today's four-digit behaviour byte for byte.
 | 46-47 | static | grep for http/src= and non-ASCII bytes | zero | Grep |
 | 48 | runtime | clock/ticker/seconds/pin all still work | all pass | curl |
 | 49 | experiential | complete a wizard run knowing nothing | completes | manual |
+| 56-58 | build | `pio run`, `pio ci` per example | 0 warnings, all build | Bash |
+| 59 | static | `.github/workflows/*.yml` exists and last run green | green | gh |
+| 60-61 | static | grep the three version strings and library.json fields | identical | Grep |
+| 62-65 | runtime | `git tag`, `gh release view`, `curl /checkupdate` | tag + asset + ok:true | Bash, curl |
+| 66-68 | static+runtime | grep setInsecure on update path; `curl -X GET /doupdate` | absent; 405 | Grep, curl |
+| 69, 84-93 | static | read README / BUILD.md / manifests | statement present | Read |
+| 70-76 | runtime | break NTP, probe /api; /probe?i=300; inject quote into city | as stated | curl |
+| 77 | UI | settings page shows a timezone control | present | Interceptor |
+| 79-83 | UI+runtime | reject a geometry, read page text; curl unknown path | error text; 404 | Interceptor, curl |
+| 94-96 | runtime+static | dump /api before and after update; grep for tokens | identical; none | curl, Grep |
 
 ## Features
 
@@ -188,6 +293,12 @@ shipped defaults reproducing today's four-digit behaviour byte for byte.
 | svg-editor | ISC-30..34, 41-43 | endpoints | yes |
 | learn-wizard | ISC-35..40, 49 | svg-editor | no |
 | regression-guard | ISC-44..48 | all | no |
+| audit-findings | ISC-56..96 (report which pass and which fail, with evidence) | - | yes |
+| release-pipeline | ISC-57, 59, 60-65, 96 | audit-findings | yes |
+| ota-hardening | ISC-66..69 | audit-findings | yes |
+| firmware-fixes | ISC-70..78, 94, 95 | audit-findings | yes |
+| ui-fixes | ISC-79..83 | audit-findings | yes |
+| library-and-docs | ISC-84..93 | audit-findings | yes |
 
 ## Parked — design space, not commitments
 
@@ -331,6 +442,23 @@ unconditional; everything else is populate-by-choice.
 - 2026-09-21: Learn wizard chosen over a numeric form, drag-assign, or photo-tap,
   scored on "what must the builder already know". Wizard is the only one whose
   answer is nothing.
+- 2026-09-23 01:25: Audit result: 7 of 65 production criteria pass. Fix batching adopted from the
+  Advisor: A = repo-only (installer image, pins, release script, CI, docs), B = one firmware
+  release 1.2.0 verified through the real 1.0.0 -> 1.2.0 hop on a spare board, C = library 1.1.0.
+  Nothing applied; awaiting Ian on canonical repo, batch approvals, hostname suffix.
+- 2026-09-23 01:25: refined: ISC-60 no longer ties FW_VERSION to the library version (Forge:
+  they version independently); it now requires only that the two library manifests agree.
+- 2026-09-23 01:25: ❌ DEAD END: my first read of `docs/firmware.factory.bin` matched the string
+  "1.1.0" and I recorded the installer as current. Wrong: that string is not FW_VERSION; the
+  image has no updater at all. A version string is not a version — grep for a feature symbol.
+- 2026-09-23 00:55: Advisor (Inference.ts) before the fan-out: the 1.0.0 updater in the field is a frozen
+  contract (tag format, asset name, repo); rollback may need a bootloader flag OTA cannot deliver;
+  GET endpoints are a CSRF surface for any LAN page; split fixes by blast radius (repo-only now,
+  firmware in one hardware-verified release); pinning one root CA on the download is worse than
+  setInsecure. Adopted as ISC-101..105 and as the fix-batching rule.
+- 2026-09-23 00:40: Production-readiness audit opened as ISC-56..96 on this project ISA. The
+  criteria ARE the definition of production ready; the audit marks each one pass or fail with
+  evidence. Fixes are a separate decision for Ian, because a release is an OTA push to every unit.
 - 2026-09-21: Version bumps per change; GitHub Releases only at real milestones.
   The device self-updates and has no rollback, so a release is a push to every
   unit. This work lands as 1.1.0 and becomes the first honest end-to-end OTA test.
@@ -360,6 +488,25 @@ Deferred, with reasons:
   T2 -- 400px render unverified: interceptor screenshot capture path is wedged (Doctor says
         HEALTHY, roundtrip OK; capture times out at 15s, twice). Known skill gotcha.
   T3 -- ISC-44 needs the pre-update device to compare against; it has already been updated.
+
+## Verification — production audit 2026-09-23
+
+Full evidence: PAI/MEMORY/WORK/20260923-mini7seg-production-audit/{direct-probes,fleet-tally,report}.md
+- ISC-56: Bash — `pio run` SUCCESS, 0 warnings at default flags, RAM 15.3% (50284 B), flash 70.8% (1391270 B); -Wall adds four %u/uint32_t format warnings
+- ISC-65: curl — `/checkupdate` -> {"ok":true,"current":"1.1.0","latest":"1.0.0","newer":false}
+- ISC-82: Interceptor — real Chrome, html constrained to 400 px: settings worstRight=400 fits=true; wiring svgW=365, 28 polygons, 4 circles, fits=true
+- ISC-99: Bash — `diff -rq 7segclock/src mini7seg/firmware/ntp4digit/src` IDENTICAL (hand-synced; passes today only)
+- ISC-100: Read — isNewer() strict greater-than; live device newer:false against 1.0.0
+- ISC-102: Grep — framework-arduinoespressif32-libs/esp32c3/sdkconfig:328 CONFIG_BOOTLOADER_APP_ROLLBACK_ENABLE=y, :3392 CONFIG_APP_ROLLBACK_ENABLE=y; cores/esp32/esp32-hal-misc.c:285 weak verifyRollbackLater(); release factory image carries the bootloader string "rollback to the previous version"
+- ISC-104: Grep — no `millis() >` or `last + interval` forms in src/; all interval checks subtract
+- ISC-106 (FAIL): Bash — `rg -a -c` on docs/firmware.factory.bin: checkupdate 0, doupdate 0, api.github.com 0, setgeometry 0, "fw" 0, wiring 0; release firmware.bin: checkupdate 2
+- ISC-107 (FAIL): Read — main.cpp:874-884 has no isNewer() gate and fetches releases/latest
+- ISC-109 (FAIL): Bash — `git rev-list -n1 v1.0.0` = c3e5461; `git show v1.0.0:src/main.cpp` has no FW_VERSION
+- ISC-110 (FAIL): Read — geometryJson() has no ok field; geometryui.h:131 tests j.ok
+- ISC-57 (FAIL): Bash — `pio pkg list`: Platform espressif32 @ 55.3.38 satisfied the unpinned spec; FastLED ^3.10.0 -> 3.10.5; library -> git HEAD 6c695db
+- ISC-58 (FAIL): fleet `pio ci` — mixed_strip: RGB is not a class; the other five: DATA_PIN 13 rejected by FastLED on esp32-c3-devkitm-1
+- ISC-97 (FAIL): see ISC-106; manifest.json version 1.0.0; release firmware.bin contains "1.0.0"
+- All other ISC-56..120: FAIL by inspection — evidence in fleet-tally.md (107 confirmed findings, 3 refuted) and the Forge report F1-F26
 
 ## Changelog
 

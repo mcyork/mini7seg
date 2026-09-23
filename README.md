@@ -229,6 +229,28 @@ A0 A1 A2...A49 B0 B1 B2...B49 C0...C49 D0...D49 E0...E49 F0...F49 G0...G49 DP0..
 | `spin` | Various spin animations |
 | `rainbow_spin` | Spin with rainbow color cycling |
 | `segment_test` | Identify segment wiring |
+| `mixed_strip` | A display sharing one strip with other LEDs |
+
+Each example names a `DATA_PIN`; set it to a pin your board can drive before
+uploading.
+
+## The clock firmware
+
+This library was written for a real device: an NTP clock on four of these digits,
+driven by an ESP32-C3 Super Mini, with a captive setup portal, a settings page, a
+wiring wizard that learns a hand-soldered display, a browser installer and
+self-update from GitHub Releases.
+
+**The firmware's canonical home is [mcyork/7segclock](https://github.com/mcyork/7segclock).**
+That is where releases are cut and where the installer page lives. The copy under
+`firmware/ntp4digit/` in this repo is a byte-identical dev copy that builds against
+this library checkout; it never ships on its own. See `BUILD.md`.
+
+## Enclosure and printed parts
+
+The 3D-printed baffle, diffuser and ESP cradle (OpenSCAD, with a Bun build script
+that produces STL/3MF/G-code) live in [`hardware/`](hardware/README.md), along with
+the PCB facts read off the board.
 
 ## Hardware
 
