@@ -1,19 +1,53 @@
 {
-  "name": "String7Segment",
-  "version": "0.1.0",
-  "description": "Drive 7-segment displays made from addressable LEDs (WS2812/NeoPixel). Works alongside existing LED arrays.",
-  "keywords": ["led", "ws2812", "neopixel", "7-segment", "display", "fastled"],
+  "name": "Mini7Seg",
+  "version": "1.1.0",
+  "description": "Drive 7-segment displays made from addressable LEDs (WS2812/NeoPixel). Works alongside existing LED arrays: writes only its own pixels, you call show().",
+  "keywords": [
+    "led",
+    "ws2812",
+    "neopixel",
+    "7-segment",
+    "seven-segment",
+    "display",
+    "fastled"
+  ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/mcyork/string_7_segment.git"
+    "url": "https://github.com/mcyork/mini7seg.git"
   },
+  "homepage": "https://github.com/mcyork/mini7seg",
   "authors": [
     {
       "name": "Ian McCutcheon",
-      "email": "ian@mcyork.com"
+      "email": "ian@mcyork.com",
+      "maintainer": true
     }
   ],
   "license": "MIT",
-  "frameworks": ["arduino"],
-  "platforms": ["espressif32", "atmelavr", "atmelsam"]
+  "frameworks": [
+    "arduino"
+  ],
+  "platforms": "*",
+  "headers": [
+    "Mini7Seg.h",
+    "String7Segment.h"
+  ],
+  "export": {
+    "include": [
+      "src",
+      "examples",
+      "library.json",
+      "library.properties",
+      "keywords.txt",
+      "LICENSE",
+      "README.md"
+    ]
+  },
+  "dependencies": [
+    {
+      "owner": "fastled",
+      "name": "FastLED",
+      "version": "^3.10.5"
+    }
+  ]
 }

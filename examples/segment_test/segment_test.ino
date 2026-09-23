@@ -10,7 +10,7 @@
 
 #include <FastLED.h>
 
-#define DATA_PIN    13
+#define DATA_PIN    4     // any pin your board can drive; 4 exists on ESP32, C3, S3 and AVR
 #define NUM_LEDS    8
 #define BRIGHTNESS  50
 

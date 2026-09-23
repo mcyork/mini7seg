@@ -72,19 +72,52 @@ uint8_t String7Segment::getPattern(char c) {
   }
 }
 
-// Write color to a specific LED in the array
-void String7Segment::setPixel(uint16_t index, S7Color color) {
-  uint8_t* pixel = _ledPtr + (index * _pixelSize);
-  // Assuming S7Color order (most common for CS7Color)
+// A space is displayable (deliberately blank); anything else that maps to 0 is not.
+bool String7Segment::isDisplayable(char c) {
+  return c == ' ' || getPattern(c) != 0;
+}
+
+// Write color to a specific LED in the array. The first three bytes of a pixel are
+// R, G, B (FastLED's CRGB layout); a fourth (white) byte is cleared so a pixel that
+// was lit white by other code does not stay lit.
+void String7Segment::setPixel(uint32_t index, S7Color color) {
+  uint8_t* pixel = _ledPtr + index * _pixelSize;
   pixel[0] = color.r;
   pixel[1] = color.g;
   pixel[2] = color.b;
+  if (_pixelSize >= 4) pixel[3] = 0;
 }
 
 // Read color from a specific LED in the array
-S7Color String7Segment::getPixel(uint16_t index) {
-  uint8_t* pixel = _ledPtr + (index * _pixelSize);
+S7Color String7Segment::getPixel(uint32_t index) {
+  uint8_t* pixel = _ledPtr + index * _pixelSize;
   return S7Color(pixel[0], pixel[1], pixel[2]);
+}
+
+void String7Segment::paintLit(uint32_t index) {
+  if (_bgMode == BG_BLEND) {
+    S7Color was = getPixel(index);
+    uint8_t* pixel = _ledPtr + index * _pixelSize;
+    uint8_t w = (_pixelSize >= 4) ? pixel[3] : 0;
+    setPixel(index, S7Color((uint8_t)(((uint16_t)was.r + _foreground.r) / 2),
+                            (uint8_t)(((uint16_t)was.g + _foreground.g) / 2),
+                            (uint8_t)(((uint16_t)was.b + _foreground.b) / 2)));
+    if (_pixelSize >= 4) pixel[3] = w / 2;   // the foreground has no white, so blend W toward 0
+  } else {
+    setPixel(index, _foreground);
+  }
+}
+
+void String7Segment::paintUnlit(uint32_t index) {
+  if (_bgMode == BG_OVERWRITE) setPixel(index, _background);
+  // BG_PRESERVE and BG_BLEND leave unlit pixels exactly as they are.
+}
+
+// Erasing is not the same as "not lit": clear() and DP-off exist to take the
+// display's own marks away, so they write the background in BLEND too (as 1.0.0
+// did). Only BG_PRESERVE means "never touch a pixel I am not lighting".
+void String7Segment::paintCleared(uint32_t index) {
+  if (_bgMode != BG_PRESERVE) setPixel(index, _background);
 }
 
 // Display a single digit (0-9)
@@ -106,71 +139,56 @@ void String7Segment::showChar(char c, uint8_t position, bool showDP) {
 void String7Segment::showSegments(uint8_t segmentMask, uint8_t position) {
   if (position >= _numDigits) return;
 
-  // Calculate LED index for this digit (8 segments * LEDs per segment)
-  uint16_t baseIndex = _offset + (position * 8 * _ledsPerSegment);
+  uint32_t baseIndex = digitBase(position);
 
-  // Process each segment
   for (uint8_t seg = 0; seg < 8; seg++) {
     bool segmentOn = (segmentMask >> seg) & 0x01;
-
-    // Each segment may have multiple LEDs
     for (uint8_t led = 0; led < _ledsPerSegment; led++) {
-      uint16_t ledIndex = baseIndex + (seg * _ledsPerSegment) + led;
-
-      if (segmentOn) {
-        // Lit segment - always set to foreground
-        setPixel(ledIndex, _foreground);
-      } else {
-        // Unlit segment - depends on background mode
-        switch (_bgMode) {
-          case BG_OVERWRITE:
-            setPixel(ledIndex, _background);
-            break;
-          case BG_PRESERVE:
-            // Don't touch it
-            break;
-          case BG_BLEND:
-            // For now, just preserve (blend logic can be added later)
-            break;
-        }
-      }
+      uint32_t ledIndex = baseIndex + (uint32_t)seg * _ledsPerSegment + led;
+      if (segmentOn) paintLit(ledIndex);
+      else           paintUnlit(ledIndex);
     }
   }
 }
 
-// Display a number across multiple digits
-void String7Segment::showNumber(int32_t number, bool leadingZeros) {
-  bool negative = (number < 0);
-  if (negative) number = -number;
+void String7Segment::showDashes() {
+  for (uint8_t pos = 0; pos < _numDigits; pos++) showChar('-', pos);
+}
+
+// Display a number across the digits, right-aligned
+bool String7Segment::showNumber(int32_t number, bool leadingZeros) {
+  bool negative = number < 0;
+  // Magnitude as unsigned: -INT32_MIN does not fit in int32_t, 0u - (uint32_t)x does.
+  uint32_t mag = negative ? 0u - (uint32_t)number : (uint32_t)number;
 
   // Extract digits right-to-left
   uint8_t digits[10];
   uint8_t digitCount = 0;
+  do {
+    digits[digitCount++] = mag % 10;
+    mag /= 10;
+  } while (mag > 0 && digitCount < 10);
 
-  if (number == 0) {
-    digits[0] = 0;
-    digitCount = 1;
-  } else {
-    while (number > 0 && digitCount < 10) {
-      digits[digitCount++] = number % 10;
-      number /= 10;
-    }
+  // The sign needs a digit of its own. If it does not fit, say so on the
+  // display rather than showing a number that is not the number.
+  if (digitCount + (negative ? 1 : 0) > _numDigits) {
+    showDashes();
+    return false;
   }
 
-  // Display from right to left
   for (uint8_t pos = 0; pos < _numDigits; pos++) {
-    uint8_t displayPos = _numDigits - 1 - pos;  // Rightmost first
-
+    uint8_t displayPos = _numDigits - 1 - pos;  // rightmost first
     if (pos < digitCount) {
       showDigit(digits[pos], displayPos);
+    } else if (negative && (leadingZeros ? displayPos == 0 : pos == digitCount)) {
+      showChar('-', displayPos);                  // leftmost with zeros, else just before the digits
     } else if (leadingZeros) {
       showDigit(0, displayPos);
-    } else if (negative && pos == digitCount) {
-      showChar('-', displayPos);
     } else {
       clearDigit(displayPos);
     }
   }
+  return true;
 }
 
 // Display hexadecimal value
@@ -180,7 +198,7 @@ void String7Segment::showHex(uint32_t value, uint8_t digits) {
 
   for (uint8_t pos = 0; pos < digits; pos++) {
     uint8_t displayPos = _numDigits - 1 - pos;
-    uint8_t nibble = (value >> (pos * 4)) & 0x0F;
+    uint8_t nibble = (pos < 8) ? (value >> (pos * 4)) & 0x0F : 0;
 
     if (nibble < 10) {
       showDigit(nibble, displayPos);
@@ -202,20 +220,11 @@ void String7Segment::clear() {
   }
 }
 
-// Clear a single digit
+// Clear a single digit: background colour in OVERWRITE and BLEND, untouched in PRESERVE.
 void String7Segment::clearDigit(uint8_t position) {
   if (position >= _numDigits) return;
-
-  uint16_t baseIndex = _offset + (position * 8 * _ledsPerSegment);
-  for (uint8_t seg = 0; seg < 8; seg++) {
-    for (uint8_t led = 0; led < _ledsPerSegment; led++) {
-      if (_bgMode == BG_PRESERVE) {
-        // Don't touch
-      } else {
-        setPixel(baseIndex + (seg * _ledsPerSegment) + led, _background);
-      }
-    }
-  }
+  uint32_t base = digitBase(position);
+  for (uint32_t i = 0; i < getLedsPerDigit(); i++) paintCleared(base + i);
 }
 
 // Set decimal point on/off
@@ -223,13 +232,10 @@ void String7Segment::setDecimalPoint(uint8_t position, bool on) {
   if (position >= _numDigits) return;
 
   // DP is segment 7 (index 7 * ledsPerSegment)
-  uint16_t dpBase = _offset + (position * 8 * _ledsPerSegment) + (7 * _ledsPerSegment);
+  uint32_t dpBase = digitBase(position) + (uint32_t)7 * _ledsPerSegment;
   for (uint8_t led = 0; led < _ledsPerSegment; led++) {
-    if (on) {
-      setPixel(dpBase + led, _foreground);
-    } else if (_bgMode != BG_PRESERVE) {
-      setPixel(dpBase + led, _background);
-    }
+    if (on) paintLit(dpBase + led);
+    else    paintCleared(dpBase + led);
   }
 }
 

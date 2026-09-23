@@ -20,6 +20,8 @@ setLedsPerSegment	KEYWORD2
 getLedsPerSegment	KEYWORD2
 getLedsPerDigit	KEYWORD2
 getPattern	KEYWORD2
+isDisplayable	KEYWORD2
+getLedCount	KEYWORD2
 spinStep	KEYWORD2
 getSpinSegment	KEYWORD2
 

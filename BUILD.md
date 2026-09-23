@@ -9,8 +9,9 @@ building the firmware against a local checkout of this library.
 
 1. Install the library: **Sketch → Include Library → Add .ZIP Library**, or clone
    this repo into `~/Documents/Arduino/libraries/`.
-2. Install **FastLED** from the Library Manager (the examples use it; the library
-   itself has no dependencies).
+2. Install **FastLED** from the Library Manager if it was not pulled in for you (every
+   example uses it and both manifests declare it; the library code itself needs only the
+   array you pass it).
 3. Open any sketch under `examples/`, set `DATA_PIN` to a pin your board can
    drive, and upload.
 

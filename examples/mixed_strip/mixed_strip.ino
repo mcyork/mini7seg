@@ -17,7 +17,7 @@
 #include <FastLED.h>
 #include "String7Segment.h"
 
-#define DATA_PIN    5
+#define DATA_PIN    4     // any pin your board can drive; 4 exists on ESP32, C3, S3 and AVR
 #define NUM_LEDS    100
 #define BRIGHTNESS  50
 
@@ -39,11 +39,12 @@ void setup() {
   FastLED.addLeds<WS2812, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
 
-  // Display in green, preserve background
-  // (so it doesn't mess with the animations around it)
-  display.setForeground(RGB::Green());
+  // Display in green. The library only ever writes LEDs 40-47, so the animations
+  // on either side are untouched whatever the background mode; OVERWRITE here just
+  // keeps the display's own unlit segments dark.
+  display.setForeground(S7Color::Green());
   display.setBackgroundMode(BG_OVERWRITE);
-  display.setBackground(RGB::Black());  // Dark segments on our display
+  display.setBackground(S7Color::Black());
 }
 
 void loop() {

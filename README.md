@@ -4,20 +4,24 @@ Arduino library for 7-segment displays made from WS2812 / NeoPixel addressable L
 
 > Build custom seven-segment displays using RGB LEDs instead of traditional single-color LED or LCD displays.
 
-![Demo](images/demo.gif)
+![Demo](https://raw.githubusercontent.com/mcyork/mini7seg/main/images/demo.gif)
 
 *Demo uses plastic straw halves as diffusers - proper acrylic or 3D-printed diffusers will look much better!*
 
 ## Features
 
-- Works with any LED array (FastLED, Adafruit NeoPixel, etc.)
+- Writes into an LED array you own: FastLED's `CRGB`, or any 3-byte RGB / 4-byte RGBW pixel struct (see [Pixel types](#pixel-types))
 - Single or multiple digits
-- Configurable LEDs per segment (1 for tiny displays, 100+ for outdoor signs)
+- Configurable LEDs per segment (1 for tiny displays, up to 255 for outdoor signs)
 - Spin animations and rainbow effects
-- Background modes: overwrite, preserve, or blend
-- Displays digits 0-9, hex A-F, letters H J L N O P R U Y, and symbols - _ (space)
+- Background modes: overwrite, preserve, or blend (mixes with whatever is in the array at the moment you draw)
+- Displays digits 0-9, hex `A b C d E F`, letters `H J L n o P r U Y`, and `-` `_` space (input is case-insensitive)
 
 ## Installation
+
+The examples use **FastLED**. Arduino Library Manager installs it for you; with a ZIP or
+`git clone` install, add it yourself (**Sketch → Include Library → Manage Libraries → FastLED**).
+The library code itself needs only the LED array you pass it.
 
 ### Download from GitHub
 1. Download this repository as ZIP (Code → Download ZIP)
@@ -61,7 +65,7 @@ Each digit uses 8 LEDs wired in segment order: **A, B, C, D, E, F, G, DP**
 #include <FastLED.h>
 #include "String7Segment.h"
 
-#define DATA_PIN    13
+#define DATA_PIN    4     // any pin your board can drive
 #define NUM_LEDS    8
 
 CRGB leds[NUM_LEDS];
@@ -105,12 +109,13 @@ String7Segment(ledArray, offset, numDigits, ledsPerSegment);
 |--------|-------------|
 | `showDigit(digit, position, showDP)` | Display 0-9 |
 | `showChar(char, position, showDP)` | Display character |
-| `showNumber(number, leadingZeros)` | Display multi-digit number |
+| `showNumber(number, leadingZeros)` | Right-aligned number; negatives get a `-`. Returns `false` and shows `-` on every digit if it does not fit |
 | `showHex(value, digits)` | Display hexadecimal |
 | `showSegments(mask, position)` | Display raw segment pattern |
-| `clear()` | Clear all digits |
-| `clearDigit(position)` | Clear one digit |
-| `setDecimalPoint(position, on)` | Control decimal point |
+| `clear()` | Erase every digit: background colour in `BG_OVERWRITE`/`BG_BLEND`, untouched in `BG_PRESERVE` |
+| `clearDigit(position)` | Erase one digit, same rule |
+| `setDecimalPoint(position, on)` | Light the DP, or erase it by the same rule as `clear()` |
+| `String7Segment::getPattern(c)` | Segment mask for a character (`0` for unknown characters and for space) |
 
 ### Animation Methods
 
@@ -125,9 +130,13 @@ String7Segment(ledArray, offset, numDigits, ledsPerSegment);
 |--------|-------------|
 | `setForeground(color)` | Set lit segment color |
 | `setBackground(color)` | Set unlit segment color |
-| `setBackgroundMode(mode)` | BG_OVERWRITE, BG_PRESERVE, or BG_BLEND |
+| `setForeground(r, g, b)` / `setBackground(r, g, b)` | Same, from components |
+| `setBackgroundMode(mode)` | See [Background modes](#background-modes) |
+| `getLedsPerSegment()` | LEDs per segment |
 | `setLedsPerSegment(count)` | Set LEDs per segment |
-| `getLedsPerDigit()` | Returns 8 × ledsPerSegment |
+| `getLedsPerDigit()` | 8 × ledsPerSegment |
+| `getLedCount()` | Pixels this display writes: digits × 8 × ledsPerSegment |
+| `String7Segment::isDisplayable(c)` | `true` if the character has a segment pattern (space counts) |
 
 ### Colors
 
@@ -151,9 +160,42 @@ display.setForeground(128, 0, 255)
 | Letters | H J L N O P R U Y (case insensitive) |
 | Symbols | - (hyphen), _ (underscore), (space) |
 
+## Background modes
+
+| mode | lit segment | unlit segment (`show*`) | `clear()` / DP off |
+|------|-------------|------------------------|-------------------|
+| `BG_OVERWRITE` (default) | foreground | background colour | background colour |
+| `BG_PRESERVE` | foreground | untouched | untouched |
+| `BG_BLEND` | 50/50 mix of foreground and what is in the array now | untouched | background colour |
+
+`BG_BLEND` mixes with the array as it is at the moment of the call, so repaint your
+underlying layer before each `show*()` — drawing twice onto the same pixels moves them
+halfway closer to the foreground each time. On RGBW pixels the white channel is mixed
+toward zero.
+
+## Segment masks
+
+For `showSegments(mask, position)`: `SEG_A` (top) `SEG_B` `SEG_C` `SEG_D` (bottom) `SEG_E`
+`SEG_F` `SEG_G` (middle) `SEG_DP` — one bit each, OR them together.
+
+## Pixel types
+
+The array must be of a **3- or 4-byte struct whose first three bytes are red, green,
+blue** — FastLED's `CRGB`, or your own `RGB` / `RGBW` struct. On a 4-byte pixel the
+fourth (white) byte is cleared when a colour is written. Rejected at compile time: a byte
+buffer such as `Adafruit_NeoPixel::getPixels()` (packed GRB) and plain integers such as
+the `uint32_t` colours from `strip.Color()`. Not detectable and not supported: a struct of
+the right size in another order, such as FastLED's `CHSV` — it compiles and shows the
+wrong colours.
+
+**Bounds:** the library never checks your array's length. A display writes exactly
+`getLedCount()` pixels starting at its offset, so the array must hold at least
+`offset + getLedCount()` pixels. `ledsPerSegment` is 1–255.
+
 ## Multi-Digit Wiring
 
-For multiple digits, wire them in sequence:
+For multiple digits, wire them in sequence. Position 0 is the **leftmost** digit and the
+first on the data line; chain left to right:
 
 ```
 Digit 0: LEDs 0-7
@@ -196,7 +238,7 @@ void setColon(bool on) {
 
 void loop() {
   hours.showNumber(12);
-  minutes.showNumber(34);
+  minutes.showNumber(34, true);   // leading zero, so 9 minutes shows "09"
   setColon(true);
   FastLED.show();
 }
@@ -259,18 +301,18 @@ This library was developed for custom PCBs using WS2812B-2020 LEDs arranged as 7
 
 **PCB Design:** [OSHWLab Project](https://oshwlab.com/mcyork/7-seg-string) - Open source schematic and Gerber files
 
-![3D Render](images/pcb-3d.png)
+![3D Render](https://raw.githubusercontent.com/mcyork/mini7seg/main/images/pcb-3d.png)
 
 | PCB Layout | 12-Digit Panel |
 |------------|----------------|
-| ![PCB Design](images/pcb-design.png) | ![Board Panel](images/mini7segboard.png) |
+| ![PCB Design](https://raw.githubusercontent.com/mcyork/mini7seg/main/images/pcb-design.png) | ![Board Panel](https://raw.githubusercontent.com/mcyork/mini7seg/main/images/mini7segboard.png) |
 
 Each digit is 20.2mm × 34.3mm with 8 LEDs (WS2812B-2020), decoupling capacitors, and 3-pin headers for daisy-chaining.
 
 <details>
 <summary>Schematic</summary>
 
-![Schematic](images/schematic.png)
+![Schematic](https://raw.githubusercontent.com/mcyork/mini7seg/main/images/schematic.png)
 
 </details>
 

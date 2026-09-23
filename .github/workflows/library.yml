@@ -1,0 +1,94 @@
+# CI for the Mini7Seg library: host tests of the display logic, a compile-must-fail
+# check that byte buffers are rejected, the manifests agreeing on a version, and
+# every example compiled for the ESP32-C3 (the clock's board), the ESP32-S3 and an
+# AVR Uno. No secrets, no release step.
+name: library
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  host:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Manifests agree
+        shell: bash
+        run: |
+          set -euo pipefail
+          P=$(sed -n 's/^version=//p' library.properties)
+          J=$(jq -r .version library.json)
+          echo "library.properties $P, library.json $J"
+          [ "$P" = "$J" ] || { echo "::error::library.properties ($P) and library.json ($J) disagree"; exit 1; }
+          N=$(jq -r .name library.json)
+          [ "$N" = "$(sed -n 's/^name=//p' library.properties)" ] || { echo "::error::library names disagree"; exit 1; }
+
+      - name: Host tests (C++17) and a C++11 build (the AVR default)
+        run: |
+          c++ -std=c++11 -Wall -Wextra -Werror -Isrc -c src/String7Segment.cpp -o /dev/null
+          c++ -std=c++17 -Wall -Wextra -Werror -Isrc src/String7Segment.cpp \
+              test/native/test_string7segment.cpp -o s7test
+          ./s7test
+
+      - name: Wrong pixel types are rejected at compile time (with a positive control)
+        shell: bash
+        run: |
+          set -uo pipefail
+          # Positive control first: if this fails, every "rejected" below would be meaningless.
+          c++ -std=c++17 -Wall -Wextra -Werror -Isrc src/String7Segment.cpp test/native/accept_pixel_structs.cpp -o accept
+          for f in reject_byte_buffer reject_uint32_colours; do
+            if out=$(c++ -std=c++17 -Isrc -c "test/native/$f.cpp" -o /dev/null 2>&1); then
+              echo "::error::$f compiled; the pixel-type static_assert is gone"; exit 1
+            fi
+            if ! grep -q "String7Segment needs" <<<"$out"; then
+              echo "::error::$f failed for a reason other than the pixel-type assert:"; echo "$out" | head -5; exit 1
+            fi
+            echo "$f: rejected by the pixel-type assert"
+          done
+
+  examples:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - { board: esp32-c3-devkitm-1, platform: "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.38-1/platform-espressif32.zip" }
+          - { board: esp32-s3-devkitc-1, platform: "https://github.com/pioarduino/platform-espressif32/releases/download/55.03.38-1/platform-espressif32.zip" }
+          - { board: uno,                platform: "atmelavr@5.1.0" }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio
+          key: pio-${{ runner.os }}-${{ matrix.target.board }}-${{ hashFiles('.github/workflows/library.yml') }}
+      - run: pip install platformio
+      - name: Compile every example
+        shell: bash
+        run: |
+          set -euo pipefail
+          for ex in examples/*/; do
+            name=$(basename "$ex")
+            echo "::group::$name on ${{ matrix.target.board }}"
+            pio ci --board "${{ matrix.target.board }}" --lib . \
+              -O "platform=${{ matrix.target.platform }}" \
+              -O "lib_deps=fastled/FastLED@3.10.5" \
+              "$ex$name.ino"
+            echo "::endgroup::"
+          done

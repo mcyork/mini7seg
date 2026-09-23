@@ -5,15 +5,15 @@
  * 7-segment display using FastLED.
  *
  * Hardware:
- * - ESP32 (or ESP32-S3)
+ * - Any board FastLED supports (ESP32, ESP32-C3, ESP32-S3, AVR...)
  * - 8 WS2812-2020 (SMD2020 package) LEDs wired as 7-segment (A,B,C,D,E,F,G,DP)
- * - Data pin connected to GPIO 13
+ * - Data pin connected to GPIO 4 (change DATA_PIN for your board)
  */
 
 #include <FastLED.h>
 #include "String7Segment.h"
 
-#define DATA_PIN    13
+#define DATA_PIN    4     // any pin your board can drive; 4 exists on ESP32, C3, S3 and AVR
 #define NUM_LEDS    8     // Single digit = 8 LEDs
 #define BRIGHTNESS  50
 

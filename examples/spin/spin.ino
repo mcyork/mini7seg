@@ -8,7 +8,7 @@
 #include <FastLED.h>
 #include "String7Segment.h"
 
-#define DATA_PIN    13
+#define DATA_PIN    4     // any pin your board can drive; 4 exists on ESP32, C3, S3 and AVR
 #define NUM_LEDS    8
 #define BRIGHTNESS  50
 
@@ -40,7 +40,7 @@ void loop() {
 
   delay(300);
 
-  // Counter-clockwise spin (A → F → E → D → C → B)
+  // Counter-clockwise spin (F → E → D → C → B → A)
   display.setForeground(S7Color::Blue());
   for (int cycles = 0; cycles < 3; cycles++) {
     for (int step = 5; step >= 0; step--) {

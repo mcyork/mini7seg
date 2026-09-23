@@ -8,7 +8,7 @@
 #include <FastLED.h>
 #include "String7Segment.h"
 
-#define DATA_PIN    13
+#define DATA_PIN    4     // any pin your board can drive; 4 exists on ESP32, C3, S3 and AVR
 #define NUM_LEDS    8
 #define BRIGHTNESS  128
 
@@ -29,8 +29,8 @@ void setup() {
   FastLED.addLeds<WS2812, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
 
-  // Color correction - boosts blue/red to match green's perceived brightness
-  // TypicalSMD5050 is good for WS2812, or try UncorrectedColor to disable
+  // Colour correction: scales green (and a little blue) down so white looks neutral
+  // on 5050/2020 WS2812s. Use UncorrectedColor to turn it off.
   FastLED.setCorrection(TypicalSMD5050);
 
   display.setBackground(S7Color::Black());
