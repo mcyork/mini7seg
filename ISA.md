@@ -1,12 +1,12 @@
 ---
 project: mini7seg
-task: Firmware 1.2.1 shipped; production audit closed except the rollback drill
+task: Production audit closed; 1.2.1 shipped, rollback drilled, one firmware source
 effort: E3
 phase: complete
-progress: 96/126
+progress: 97/126
 mode: research
 started: 2026-09-21
-updated: 2026-09-23T12:40:00-07:00
+updated: 2026-09-23T15:20:00-07:00
 ---
 
 # mini7seg — ISA
@@ -178,7 +178,7 @@ Versioning and release
 
 OTA and recovery
 - [x] ISC-66: The firmware download verifies the server certificate (no `setInsecure()` on the update path)
-- [DEFERRED-VERIFY] ISC-67: Three consecutive crash resets roll the device back to the previous OTA slot
+- [x] ISC-67: An OTA image that is reset before it is confirmed rolls back to the previous slot on the next boot (refined 2026-09-23: the bootloader tracks one boot, not three; drilled over USB-JTAG: 1.1.99 pending -> hard reset at 20 s -> 1.2.1 valid)
 - [x] ISC-68: `/doupdate`, `/stress` and `/reboot` reject GET (no side effects reachable by a prefetch)
 - [x] ISC-69: README states the trust model of the update endpoints (LAN-open, no auth) in one sentence
 
@@ -222,7 +222,7 @@ Anti-criteria
 Added by IterativeDepth (Literal + Failure lenses)
 - [x] ISC-97: `docs/firmware.factory.bin` in 7segclock and the latest release `firmware.bin` carry the same FW_VERSION
 - [x] ISC-98: The installer page pins `esp-web-tools` to an exact version (not a floating `@10`)
-- [x] ISC-99: The firmware has one source: 7segclock/src and mini7seg/firmware/ntp4digit/src are byte-identical, or one is removed
+- [x] ISC-99: The firmware has one source: the mini7seg dev copy is removed; `pio run -e dev` in 7segclock builds against a sibling checkout
 - [x] ISC-100: Anti: `/checkupdate` never reports `newer:true` for a tag equal to or lower than FW_VERSION
 
 Added after the Advisor call
@@ -446,6 +446,10 @@ unconditional; everything else is populate-by-choice.
 - 2026-09-21: Learn wizard chosen over a numeric form, drag-assign, or photo-tap,
   scored on "what must the builder already know". Wizard is the only one whose
   answer is nothing.
+- 2026-09-23 15:15: Rollback drilled without hands: the clock is on this Mac's USB (/dev/cu.usbmodem2101), so
+  esptool's RTS reset stood in for a power cut. 1.1.99 flashed (pending), reset at ~20 s, back on 1.2.1
+  valid. Dev copy deleted at Ian's word; `[env:dev]` in 7segclock replaces it. The wrong-password
+  portal test is the one thing left that needs a phone (recovery means joining the clock's AP).
 - 2026-09-23 12:30: SHIPPED. v1.2.0 published and the 1.0.0 -> 1.2.0 hop verified on the clock (41 s);
   then the new updater's own test (1.1.99 -> latest) FAILED: GitHub's asset CDN chains to Let's Encrypt
   "Root YR", absent from the IDF bundle in core 3.3.8. Fixed in 1.2.1: resolve the redirect on the
