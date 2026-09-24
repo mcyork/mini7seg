@@ -1,12 +1,12 @@
 ---
 project: mini7seg
-task: Production audit closed; firmware 1.2.1 and library 1.1.0 shipped
+task: Production audit closed; firmware 1.2.2 and library 1.1.0 shipped, hands-on tests passed
 effort: E3
 phase: complete
 progress: 105/126
 mode: research
 started: 2026-09-21
-updated: 2026-09-23T16:30:00-07:00
+updated: 2026-09-23T20:45:00-07:00
 ---
 
 # mini7seg — ISA
@@ -446,6 +446,9 @@ unconditional; everything else is populate-by-choice.
 - 2026-09-21: Learn wizard chosen over a numeric form, drag-assign, or photo-tap,
   scored on "what must the builder already know". Wizard is the only one whose
   answer is nothing.
+- 2026-09-23 20:40: Wrong-password bench test (Ian's phone) found the portal invisible on 1.2.1 — station scanning
+  starved the soft AP. Fixed and shipped as v1.2.2 (silence STA before AP, bounded retry bursts); re-test
+  passed end to end; release proven by a 1.2.1 -> 1.2.2 self-update.
 - 2026-09-23 16:25: Batch C shipped as Mini7Seg v1.1.0 (tag + release, 92efc98). Three-lens review: 22 findings
   applied, incl. a CI -Wcomment failure only GCC would raise and a BLEND clear() regression I introduced.
   CI green on host tests (35), reject+positive-control, C++11, and all examples on C3/S3/Uno. 7segclock
@@ -557,6 +560,10 @@ Full evidence: PAI/MEMORY/WORK/20260923-mini7seg-production-audit/{direct-probes
 
 ## Changelog
 
+- 2026-09-23 | conjectured: an AP_STA portal stays visible while the station retries the saved network in the background
+  refuted by: the wrong-password bench test — portal "up" for minutes, invisible to a phone; serial showed the station scanning continuously (auto-reconnect plus portal retries)
+  learned: on a single-radio part, a station hunting for an absent network starves the soft AP; the portal must own the radio and retry in bounded bursts
+  criterion now: ISC-113/114 verified on hardware with 1.2.2; the bench test (wrong SSID -> phone completes setup) is part of release verification
 - 2026-09-23 | conjectured: the root bundle ESP-IDF embeds verifies every host the update touches
   refuted by: the 1.1.99 -> latest test on the clock — github.com verified, the asset CDN did not; its chain ends at Let's Encrypt "Root YR", which the bundle in arduino-esp32 3.3.8 predates
   learned: a trust store frozen into firmware goes stale as CAs add roots; a verified download needs an anchor set the firmware owner can refresh, and the updater must be exercised from a lower build against the real CDN before it is the only path
